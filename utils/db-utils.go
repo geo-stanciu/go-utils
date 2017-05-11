@@ -29,9 +29,25 @@ func (nt NullTime) Value() (driver.Value, error) {
 	return nt.Time, nil
 }
 
-func PrepareQuery(query string) string {
+type DbUtils struct {
+    dbType string
+}
+
+func (u *DbUtils) SetDbType(dbType string) {
+    if len(dbType) == 0 || (dbType != "postgres" && dbType != "oci8" && dbType != "mysql") {
+        panic("DbType must be one of: postgres, oci8 or mysql")
+    }
+
+    u.dbType = dbType
+}
+
+func (u *DbUtils) PrepareQuery(query string) string {
+    if len(u.dbType) == 0 {
+        panic("DbType must be one of: postgres, oci8 or mysql")
+    }
+
 	q := query
-	dbType := strings.ToLower(config.DbType)
+	dbType := strings.ToLower(u.dbType)
 
 	i := 1
 	prefix := ""
