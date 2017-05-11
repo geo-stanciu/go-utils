@@ -2,9 +2,11 @@ package utils
 
 import (
 	"database/sql/driver"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
+	"database/sql"
 )
 
 // NullTime represents a time.Time that may be null. NullTime implements the
@@ -32,16 +34,17 @@ func (nt NullTime) Value() (driver.Value, error) {
 // DbUtils can be used to prepare queries by changing the sql param notations
 // as defined by each supported database
 type DbUtils struct {
+	db     *sql.DB
 	dbType string
 	prefix string
 }
 
-func (u *DbUtils) SetDbType(dbType string) {
+func (u *DbUtils) setDbType(dbType string) {
 	if len(dbType) == 0 || (dbType != "postgres" && dbType != "oci8" && dbType != "mysql") {
 		panic("DbType must be one of: postgres, oci8 or mysql")
 	}
 
-	u.dbType = strings.ToLower(u.dbType)
+	u.dbType = strings.ToLower(dbType)
 
 	if u.dbType == "postgres" {
 		u.prefix = "$"
@@ -75,4 +78,23 @@ func (u *DbUtils) PrepareQuery(query string) string {
 	}
 
 	return q
+}
+
+func (u *DbUtils) Connect2Database(db **sql.DB, dbType, dbURL string) error {
+	var err error
+	u.setDbType(dbType)
+
+	*db, err = sql.Open(dbType, dbURL)
+	if err != nil {
+		return errors.New("Can't connect to the database, go error " + fmt.Sprintf("%s", err))
+	}
+
+	err = (*db).Ping()
+	if err != nil {
+		return errors.New("Can't ping the database, go error " + fmt.Sprintf("%s", err))
+	}
+
+	u.db = *db
+
+	return nil
 }
