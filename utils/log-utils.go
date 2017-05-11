@@ -18,7 +18,7 @@ func (a *AuditLog) SetLoggerAndDatabase(log *logrus.Logger, dbUtils *DbUtils) {
 }
 
 func (a AuditLog) Write(p []byte) (n int, err error) {
-	query := (*a.dbUtils).PrepareQuery(`
+	query := (*a.dbUtils).PQuery(`
         INSERT INTO audit_log (
             log_time, audit_msg
         )

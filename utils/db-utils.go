@@ -56,9 +56,9 @@ func (u *DbUtils) setDbType(dbType string) {
 }
 
 //
-// PrepareQuery prepares query for run by changing params written as ? to $1, $2, etc
+// PQuery prepares query for run by changing params written as ? to $1, $2, etc
 // for postgres and :1, :2, etc for oracle
-func (u *DbUtils) PrepareQuery(query string) string {
+func (u *DbUtils) PQuery(query string) string {
 	q := query
 	i := 1
 
