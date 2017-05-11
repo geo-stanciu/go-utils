@@ -40,8 +40,8 @@ type DbUtils struct {
 }
 
 func (u *DbUtils) setDbType(dbType string) {
-	if len(dbType) == 0 || (dbType != "postgres" && dbType != "oci8" && dbType != "mysql") {
-		panic("DbType must be one of: postgres, oci8 or mysql")
+	if len(dbType) == 0 || (dbType != "postgres" && dbType != "oci8"  && dbType != "sqlite3" && dbType != "mysql") {
+		panic("DbType must be one of: postgres, oci8, sqlite3 or mysql")
 	}
 
 	u.dbType = strings.ToLower(dbType)
