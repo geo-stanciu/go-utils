@@ -1,13 +1,11 @@
 package utils
 
 import (
-	"sync"
 	"time"
 	"github.com/sirupsen/logrus"
 )
 
 type AuditLog struct {
-	sync.RWMutex
 	log     *logrus.Logger
 	dbUtils *DbUtils
 }
