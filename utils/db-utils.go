@@ -29,38 +29,35 @@ func (nt NullTime) Value() (driver.Value, error) {
 	return nt.Time, nil
 }
 
+// DbUtils can be used to prepare queries by changing the sql param notations
+// as defined by each supported database
 type DbUtils struct {
-    dbType string
+	dbType string
+	prefix string
 }
 
 func (u *DbUtils) SetDbType(dbType string) {
-    if len(dbType) == 0 || (dbType != "postgres" && dbType != "oci8" && dbType != "mysql") {
-        panic("DbType must be one of: postgres, oci8 or mysql")
-    }
+	if len(dbType) == 0 || (dbType != "postgres" && dbType != "oci8" && dbType != "mysql") {
+		panic("DbType must be one of: postgres, oci8 or mysql")
+	}
 
-    u.dbType = dbType
+	u.dbType = strings.ToLower(u.dbType)
+
+	if u.dbType == "postgres" {
+		u.prefix = "$"
+	} else if u.dbType == "oci8" {
+		u.prefix = ":"
+	} else {
+		u.prefix = ""
+	}
 }
 
 //
 // PrepareQuery prepares query for run by changing params written as ? to $1, $2, etc
 // for postgres and :1, :2, etc for oracle
-//
 func (u *DbUtils) PrepareQuery(query string) string {
-    if len(u.dbType) == 0 {
-        panic("DbType must be one of: postgres, oci8 or mysql")
-    }
-
 	q := query
-	dbType := strings.ToLower(u.dbType)
-
 	i := 1
-	prefix := ""
-
-	if dbType == "postgres" {
-		prefix = "$"
-	} else if dbType == "oci8" {
-		prefix = ":"
-	}
 
 	if len(prefix) > 0 {
 		for {
