@@ -59,7 +59,7 @@ func (u *DbUtils) PrepareQuery(query string) string {
 	q := query
 	i := 1
 
-	if len(prefix) > 0 {
+	if len(u.prefix) > 0 {
 		for {
 			idx := strings.Index(q, "?")
 
@@ -67,7 +67,7 @@ func (u *DbUtils) PrepareQuery(query string) string {
 				break
 			}
 
-			prm := fmt.Sprintf("%s%d", prefix, i)
+			prm := fmt.Sprintf("%s%d", u.prefix, i)
 			i++
 
 			q = strings.Replace(q, "?", prm, 1)
