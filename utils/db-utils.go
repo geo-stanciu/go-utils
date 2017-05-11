@@ -41,6 +41,10 @@ func (u *DbUtils) SetDbType(dbType string) {
     u.dbType = dbType
 }
 
+//
+// PrepareQuery prepares query for run by changing params written as ? to $1, $2, etc
+// for postgres and :1, :2, etc for oracle
+//
 func (u *DbUtils) PrepareQuery(query string) string {
     if len(u.dbType) == 0 {
         panic("DbType must be one of: postgres, oci8 or mysql")
@@ -58,7 +62,7 @@ func (u *DbUtils) PrepareQuery(query string) string {
 		prefix = ":"
 	}
 
-	if dbType != "mysql" {
+	if len(prefix) > 0 {
 		for {
 			idx := strings.Index(q, "?")
 
