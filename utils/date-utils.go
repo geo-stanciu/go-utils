@@ -59,7 +59,12 @@ func Date2string(val time.Time, format string) string {
 func String2date(sval string, format string) (time.Time, error) {
 	switch format {
 	case ISODate, ISODateTime, ISODateTimestamp, ISODateTimeZ, ISODateTimestampZ, DMY, DMYTime, DateOffset:
-		t, err := time.Parse(format, sval)
+		loc, err := time.LoadLocation("Local")
+		if err != nil {
+			return time.Now(), err
+		}
+
+		t, err := time.ParseInLocation(format, sval, loc)
 		if err != nil {
 			return time.Now(), err
 		}
