@@ -96,25 +96,5 @@ func (u *DbUtils) Connect2Database(db **sql.DB, dbType, dbURL string) error {
 
 	u.db = *db
 
-	err = dbSpecific(*db, dbType)
-
-	if err != nil {
-		return errors.New("Database error " + fmt.Sprintf("%s", err))
-	}
-
-	return nil
-}
-
-func dbSpecific(db *sql.DB, dbType string) error {
-	if dbType == "sqlite3" {
-		query := `
-			PRAGMA foreign_keys=1;
-			PRAGMA journal_mode=WAL;
-		`
-		_, err := db.Exec(query)
-
-		return err
-	}
-
 	return nil
 }
