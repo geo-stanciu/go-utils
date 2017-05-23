@@ -1,12 +1,12 @@
 package utils
 
 import (
+	"database/sql"
 	"database/sql/driver"
 	"errors"
 	"fmt"
 	"strings"
 	"time"
-	"database/sql"
 )
 
 // NullTime represents a time.Time that may be null. NullTime implements the
@@ -40,7 +40,7 @@ type DbUtils struct {
 }
 
 func (u *DbUtils) setDbType(dbType string) {
-	if len(dbType) == 0 || (dbType != "postgres" && dbType != "oci8"  && dbType != "sqlite3" && dbType != "mysql") {
+	if len(dbType) == 0 || (dbType != "postgres" && dbType != "oci8" && dbType != "sqlite3" && dbType != "mysql") {
 		panic("DbType must be one of: postgres, oci8, sqlite3 or mysql")
 	}
 
@@ -95,6 +95,26 @@ func (u *DbUtils) Connect2Database(db **sql.DB, dbType, dbURL string) error {
 	}
 
 	u.db = *db
+
+	err = dbSpecific(*db, dbType)
+
+	if err != nil {
+		return errors.New("Database error " + fmt.Sprintf("%s", err))
+	}
+
+	return nil
+}
+
+func dbSpecific(db *sql.DB, dbType string) error {
+	if dbType == "sqlite3" {
+		query := `
+			PRAGMA foreign_keys=1;
+			PRAGMA journal_mode=WAL;
+		`
+		_, err := db.Exec(query)
+
+		return err
+	}
 
 	return nil
 }

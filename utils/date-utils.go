@@ -1,9 +1,9 @@
 package utils
 
 import (
-	"time"
 	"fmt"
 	"net/http"
+	"time"
 )
 
 const (
@@ -65,6 +65,28 @@ func String2date(sval string, format string) (time.Time, error) {
 		}
 
 		t, err := time.ParseInLocation(format, sval, loc)
+		if err != nil {
+			return time.Now(), err
+		}
+		return t, nil
+	case UTCDateTime:
+		loc, err := time.LoadLocation("UTC")
+		if err != nil {
+			return time.Now(), err
+		}
+
+		t, err := time.ParseInLocation(ISODateTime, sval, loc)
+		if err != nil {
+			return time.Now(), err
+		}
+		return t, nil
+	case UTCDateTimestamp:
+		loc, err := time.LoadLocation("UTC")
+		if err != nil {
+			return time.Now(), err
+		}
+
+		t, err := time.ParseInLocation(ISODateTimestamp, sval, loc)
 		if err != nil {
 			return time.Now(), err
 		}
