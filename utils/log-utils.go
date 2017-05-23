@@ -2,44 +2,74 @@ package utils
 
 import (
 	"time"
+
+	"fmt"
+
 	"github.com/sirupsen/logrus"
 )
+
+type logItem struct {
+	logTime time.Time
+	logMsg  string
+}
 
 type AuditLog struct {
 	log     *logrus.Logger
 	dbUtils *DbUtils
+	queue   chan logItem
+}
+
+func (a *AuditLog) processQueue() {
+	go func() {
+		for {
+			item := <-a.queue
+
+			query := a.dbUtils.PQuery(`
+				INSERT INTO audit_log (
+					log_time, audit_msg
+				)
+				VALUES (?, ?)
+			`)
+
+			_, err := a.dbUtils.db.Exec(query, item.logTime, item.logMsg)
+
+			if err != nil {
+				fmt.Println("log error:", err)
+			}
+
+			time.Sleep(10 * time.Millisecond)
+		}
+	}()
 }
 
 func (a *AuditLog) SetLoggerAndDatabase(log *logrus.Logger, dbUtils *DbUtils) {
 	a.log = log
 	a.dbUtils = dbUtils
+	a.queue = make(chan logItem, 128)
+	a.processQueue()
 }
 
 func (a AuditLog) Write(p []byte) (n int, err error) {
-	query := (*a.dbUtils).PQuery(`
-        INSERT INTO audit_log (
-            log_time, audit_msg
-        )
-        VALUES (?, ?)
-    `)
-
-	logTime := time.Now().UTC()
-	msg := string(p)
-
-	_, err = (*a.dbUtils).db.Exec(query, logTime, msg)
-
-	if err != nil {
-		return 0, err
+	item := logItem{
+		logTime: time.Now().UTC(),
+		logMsg:  string(p),
 	}
+
+	a.queue <- item
 
 	return len(p), nil
 }
 
-func (a AuditLog) Log(isErr bool, err error, msgType string, msg string, details ...interface{}) {
+func (a AuditLog) Log(err error, msgType string, msg string, details ...interface{}) {
 	fields := make(map[string]interface{})
 
 	if len(msgType) > 0 {
 		fields["msg_type"] = msgType
+	}
+
+	isErr := false
+	if err != nil {
+		isErr = true
 	}
 
 	if isErr {
