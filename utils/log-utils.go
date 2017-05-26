@@ -33,7 +33,9 @@ func (a *AuditLog) SetLoggerAndDatabase(log *logrus.Logger, dbUtils *DbUtils) {
 
 func (a *AuditLog) processQueue() {
 	item := <-a.queue
-	defer a.wg.Done()
+	if a.wg != nil {
+		defer a.wg.Done()
+	}
 
 	query := a.dbUtils.PQuery(`
 		INSERT INTO audit_log (
@@ -57,7 +59,10 @@ func (a AuditLog) Write(p []byte) (n int, err error) {
 
 	go a.processQueue()
 
-	a.wg.Add(1)
+	if a.wg != nil {
+		a.wg.Add(1)
+	}
+
 	a.queue <- item
 
 	return len(p), nil
