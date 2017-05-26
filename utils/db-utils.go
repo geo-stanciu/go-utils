@@ -77,6 +77,10 @@ func (u *DbUtils) PQuery(query string) string {
 		}
 	}
 
+	if u.dbType == "sqlite3" {
+		q = strings.Replace(q, "DATE ?", "date(?)", -1)
+	}
+
 	return q
 }
 

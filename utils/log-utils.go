@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"sync"
 	"time"
 
 	"fmt"
@@ -17,36 +18,35 @@ type AuditLog struct {
 	log     *logrus.Logger
 	dbUtils *DbUtils
 	queue   chan logItem
+	wg      *sync.WaitGroup
 }
 
-func (a *AuditLog) processQueue() {
-	go func() {
-		for {
-			item := <-a.queue
-
-			query := a.dbUtils.PQuery(`
-				INSERT INTO audit_log (
-					log_time, audit_msg
-				)
-				VALUES (?, ?)
-			`)
-
-			_, err := a.dbUtils.db.Exec(query, item.logTime, item.logMsg)
-
-			if err != nil {
-				fmt.Println("log error:", err)
-			}
-
-			time.Sleep(10 * time.Millisecond)
-		}
-	}()
+func (a *AuditLog) SetWaitGroup(wg *sync.WaitGroup) {
+	a.wg = wg
 }
 
 func (a *AuditLog) SetLoggerAndDatabase(log *logrus.Logger, dbUtils *DbUtils) {
 	a.log = log
 	a.dbUtils = dbUtils
 	a.queue = make(chan logItem, 128)
-	a.processQueue()
+}
+
+func (a *AuditLog) processQueue() {
+	item := <-a.queue
+	defer a.wg.Done()
+
+	query := a.dbUtils.PQuery(`
+		INSERT INTO audit_log (
+			log_time, audit_msg
+		)
+		VALUES (?, ?)
+	`)
+
+	_, err := a.dbUtils.db.Exec(query, item.logTime, item.logMsg)
+
+	if err != nil {
+		fmt.Println("log error:", err)
+	}
 }
 
 func (a AuditLog) Write(p []byte) (n int, err error) {
@@ -55,6 +55,9 @@ func (a AuditLog) Write(p []byte) (n int, err error) {
 		logMsg:  string(p),
 	}
 
+	go a.processQueue()
+
+	a.wg.Add(1)
 	a.queue <- item
 
 	return len(p), nil
