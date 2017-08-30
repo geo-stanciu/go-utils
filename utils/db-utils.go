@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -34,12 +35,16 @@ func (nt NullTime) Value() (driver.Value, error) {
 // DbUtils can be used to prepare queries by changing the sql param notations
 // as defined by each supported database
 type DbUtils struct {
+	sync.RWMutex
 	db     *sql.DB
 	dbType string
 	prefix string
 }
 
 func (u *DbUtils) setDbType(dbType string) {
+	u.RLock()
+	defer u.RUnlock()
+
 	if len(dbType) == 0 || (dbType != "postgres" && dbType != "oci8" && dbType != "sqlite3" && dbType != "mysql") {
 		panic("DbType must be one of: postgres, oci8, sqlite3 or mysql")
 	}
@@ -55,7 +60,6 @@ func (u *DbUtils) setDbType(dbType string) {
 	}
 }
 
-//
 // PQuery prepares query for run by changing params written as ? to $1, $2, etc
 // for postgres and :1, :2, etc for oracle
 func (u *DbUtils) PQuery(query string) string {
@@ -85,7 +89,11 @@ func (u *DbUtils) PQuery(query string) string {
 	return q
 }
 
+// Connect2Database - connect to a database
 func (u *DbUtils) Connect2Database(db **sql.DB, dbType, dbURL string) error {
+	u.RLock()
+	defer u.RUnlock()
+
 	var err error
 	u.setDbType(dbType)
 
@@ -100,6 +108,64 @@ func (u *DbUtils) Connect2Database(db **sql.DB, dbType, dbURL string) error {
 	}
 
 	u.db = *db
+
+	return nil
+}
+
+// RunQuery - reads sql into a struct
+func RunQuery(db *sql.DB, query string, dest interface{}, args ...interface{}) error {
+	scanHelper := SQLScanHelper{}
+	found := false
+
+	rows, err := db.Query(query, args...)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		found = true
+		err = scanHelper.Scan(rows, dest)
+		break
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return err
+	}
+
+	if !found {
+		return errors.New("No rows selected")
+	}
+
+	return nil
+}
+
+// RunQueryTx - reads sql into a struct (from a transaction)
+func RunQueryTx(tx *sql.Tx, query string, dest interface{}, args ...interface{}) error {
+	scanHelper := SQLScanHelper{}
+	found := false
+
+	rows, err := tx.Query(query, args...)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		found = true
+		err = scanHelper.Scan(rows, dest)
+		break
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return err
+	}
+
+	if !found {
+		return errors.New("No rows selected")
+	}
 
 	return nil
 }
