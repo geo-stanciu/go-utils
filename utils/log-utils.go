@@ -1,69 +1,36 @@
 package utils
 
 import (
-	"sync"
-	"time"
-
 	"fmt"
 
 	"github.com/sirupsen/logrus"
 )
 
-type logItem struct {
-	logTime time.Time
-	logMsg  string
-}
-
 type AuditLog struct {
 	log     *logrus.Logger
 	dbUtils *DbUtils
-	queue   chan logItem
-	wg      *sync.WaitGroup
-}
-
-func (a *AuditLog) SetWaitGroup(wg *sync.WaitGroup) {
-	a.wg = wg
 }
 
 func (a *AuditLog) SetLoggerAndDatabase(log *logrus.Logger, dbUtils *DbUtils) {
 	a.log = log
 	a.dbUtils = dbUtils
-	a.queue = make(chan logItem, 128)
-}
-
-func (a *AuditLog) processQueue() {
-	item := <-a.queue
-	if a.wg != nil {
-		defer a.wg.Done()
-	}
-
-	query := a.dbUtils.PQuery(`
-		INSERT INTO audit_log (
-			log_time, audit_msg
-		)
-		VALUES (?, ?)
-	`)
-
-	_, err := a.dbUtils.db.Exec(query, item.logTime, item.logMsg)
-
-	if err != nil {
-		fmt.Println("log error:", err)
-	}
 }
 
 func (a AuditLog) Write(p []byte) (n int, err error) {
-	item := logItem{
-		logTime: time.Now().UTC(),
-		logMsg:  string(p),
+	query := a.dbUtils.PQuery(`
+		INSERT INTO audit_log (
+			audit_msg
+		)
+		VALUES (?)
+	`)
+
+	logMsg := string(p)
+
+	_, err = a.dbUtils.db.Exec(query, logMsg)
+
+	if err != nil {
+		return 0, fmt.Errorf("log error: %v", err)
 	}
-
-	go a.processQueue()
-
-	if a.wg != nil {
-		a.wg.Add(1)
-	}
-
-	a.queue <- item
 
 	return len(p), nil
 }

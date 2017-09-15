@@ -135,7 +135,7 @@ func RunQuery(db *sql.DB, query string, dest interface{}, args ...interface{}) e
 	}
 
 	if !found {
-		return errors.New("No rows selected")
+		return sql.ErrNoRows
 	}
 
 	return nil
@@ -164,7 +164,50 @@ func RunQueryTx(tx *sql.Tx, query string, dest interface{}, args ...interface{})
 	}
 
 	if !found {
-		return errors.New("No rows selected")
+		return sql.ErrNoRows
+	}
+
+	return nil
+}
+
+// DBRowCallback - callback type
+type DBRowCallback func(row *sql.Rows)
+
+// ForEachRow - reads sql and runs a function fo every row
+func ForEachRow(db *sql.DB, query string, callback DBRowCallback, args ...interface{}) error {
+	rows, err := db.Query(query, args...)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		callback(rows)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ForEachRowTx - reads sql and runs a function fo every row
+func ForEachRowTx(tx *sql.Tx, query string, callback DBRowCallback, args ...interface{}) error {
+	rows, err := tx.Query(query, args...)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		callback(rows)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return err
 	}
 
 	return nil
