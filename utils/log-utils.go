@@ -54,7 +54,6 @@ func (a *AuditLog) processQueue() {
 func (a AuditLog) Write(p []byte) (n int, err error) {
 	if a.wg != nil {
 		a.wg.Add(1)
-		defer a.wg.Done()
 	}
 
 	li := logItem{
