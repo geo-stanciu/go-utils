@@ -2,35 +2,69 @@ package utils
 
 import (
 	"fmt"
+	"sync"
+	"time"
 
 	"github.com/sirupsen/logrus"
 )
 
+type logItem struct {
+	dt  time.Time
+	msg string
+}
+
 type AuditLog struct {
 	log     *logrus.Logger
 	dbUtils *DbUtils
+	queue   chan logItem
+	wg      *sync.WaitGroup
+}
+
+func (a *AuditLog) SetWaitGroup(wg *sync.WaitGroup) {
+	a.wg = wg
 }
 
 func (a *AuditLog) SetLoggerAndDatabase(log *logrus.Logger, dbUtils *DbUtils) {
 	a.log = log
 	a.dbUtils = dbUtils
+	a.queue = make(chan logItem, 128)
+}
+
+func (a *AuditLog) processQueue() {
+	if a.wg != nil {
+		defer a.wg.Done()
+	}
+
+	li := <-a.queue
+
+	query := a.dbUtils.PQuery(`
+		INSERT INTO audit_log (
+			log_time, audit_msg
+		)
+		VALUES (?, ?)
+	`)
+
+	_, err := a.dbUtils.db.Exec(query, li.dt, li.msg)
+
+	if err != nil {
+		fmt.Println("log error: ", err)
+	}
 }
 
 func (a AuditLog) Write(p []byte) (n int, err error) {
-	query := a.dbUtils.PQuery(`
-		INSERT INTO audit_log (
-			audit_msg
-		)
-		VALUES (?)
-	`)
-
-	logMsg := string(p)
-
-	_, err = a.dbUtils.db.Exec(query, logMsg)
-
-	if err != nil {
-		return 0, fmt.Errorf("log error: %v", err)
+	if a.wg != nil {
+		a.wg.Add(1)
+		defer a.wg.Done()
 	}
+
+	li := logItem{
+		dt:  time.Now().UTC(),
+		msg: string(p),
+	}
+
+	a.queue <- li
+
+	go a.processQueue()
 
 	return len(p), nil
 }

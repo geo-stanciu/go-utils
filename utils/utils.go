@@ -1,10 +1,23 @@
 package utils
 
 import (
+	"os"
+	"reflect"
+	"runtime"
 	"strconv"
 	"time"
-	"reflect"
 )
+
+func GetUserHomeDir() string {
+	if runtime.GOOS == "windows" {
+		home := os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
+		if home == "" {
+			home = os.Getenv("USERPROFILE")
+		}
+		return home
+	}
+	return os.Getenv("HOME")
+}
 
 func InTimeSpan(start, end, check time.Time) bool {
 	return check.After(start) && check.Before(end)
