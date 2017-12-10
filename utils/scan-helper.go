@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"time"
 )
 
 // SQLScanHelper helper class for reading sql to Struct
@@ -26,7 +27,7 @@ func (s *SQLScanHelper) Clear() {
 }
 
 // Scan - reads sql statement into a struct
-func (s *SQLScanHelper) Scan(rows *sql.Rows, dest interface{}) error {
+func (s *SQLScanHelper) Scan(u *DbUtils, rows *sql.Rows, dest interface{}) error {
 	s.RLock()
 	defer s.RUnlock()
 
@@ -43,7 +44,8 @@ func (s *SQLScanHelper) Scan(rows *sql.Rows, dest interface{}) error {
 	structVal := reflect.ValueOf(dest)
 
 	for i, colName := range s.columnNames {
-		fieldVal := structVal.Elem().FieldByName(strings.Title(strings.ToLower(colName)))
+		loweredcolname := strings.ToLower(colName)
+		fieldVal := structVal.Elem().FieldByName(strings.Title(loweredcolname))
 
 		if !fieldVal.IsValid() {
 			return fmt.Errorf(colName + " field not valid")
@@ -56,6 +58,23 @@ func (s *SQLScanHelper) Scan(rows *sql.Rows, dest interface{}) error {
 	err := rows.Scan(pointers...)
 	if err != nil {
 		return err
+	}
+
+	if u.dbType == "oci8" {
+		// in oci, the timestamp is comming up as local time zone
+		// even if you ask for the UTC
+		dt := time.Now()
+
+		for _, colName := range s.columnNames {
+			loweredcolname := strings.ToLower(colName)
+			fieldVal := structVal.Elem().FieldByName(strings.Title(loweredcolname))
+
+			if fieldVal.IsValid() && fieldVal.Type() == reflect.TypeOf(dt) {
+				dtval := fieldVal.Addr().Interface().(*time.Time)
+				strdt := Date2string(*dtval, ISODateTimestamp)
+				*dtval = String2dateNoErr(strdt, UTCDateTimestamp)
+			}
+		}
 	}
 
 	return nil

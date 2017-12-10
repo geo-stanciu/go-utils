@@ -100,9 +100,9 @@ func (u *DbUtils) PQuery(query string) string {
 	} else if u.dbType == "sqlite3" {
 		q = strings.Replace(q, "DATE ?", "date(?)", -1)
 		q = strings.Replace(q, "TIMESTAMP ?", "datetime(?)", -1)
-	} /*else if u.dbType == "oci8" {
-		q = strings.Replace(q, "current_timestamp", "extract(day from(sys_extract_utc(systimestamp) - to_timestamp('1970-01-01', 'YYYY-MM-DD'))) * 86400000 + to_number(to_char(sys_extract_utc(systimestamp), 'SSSSSFF3'))", -1)
-	}*/
+	} else if u.dbType == "oci8" {
+		q = strings.Replace(q, "current_timestamp", "sys_extract_utc(systimestamp)", -1)
+	}
 
 	return q
 }
@@ -131,11 +131,11 @@ func (u *DbUtils) Connect2Database(db **sql.DB, dbType, dbURL string) error {
 }
 
 // RunQuery - reads sql into a struct
-func RunQuery(db *sql.DB, query string, dest interface{}, args ...interface{}) error {
+func (u *DbUtils) RunQuery(query string, dest interface{}, args ...interface{}) error {
 	scanHelper := SQLScanHelper{}
 	found := false
 
-	rows, err := db.Query(query, args...)
+	rows, err := u.db.Query(query, args...)
 	if err != nil {
 		return err
 	}
@@ -143,7 +143,7 @@ func RunQuery(db *sql.DB, query string, dest interface{}, args ...interface{}) e
 
 	for rows.Next() {
 		found = true
-		err = scanHelper.Scan(rows, dest)
+		err = scanHelper.Scan(u, rows, dest)
 		break
 	}
 
@@ -160,7 +160,7 @@ func RunQuery(db *sql.DB, query string, dest interface{}, args ...interface{}) e
 }
 
 // RunQueryTx - reads sql into a struct (from a transaction)
-func RunQueryTx(tx *sql.Tx, query string, dest interface{}, args ...interface{}) error {
+func (u *DbUtils) RunQueryTx(tx *sql.Tx, query string, dest interface{}, args ...interface{}) error {
 	scanHelper := SQLScanHelper{}
 	found := false
 
@@ -172,7 +172,7 @@ func RunQueryTx(tx *sql.Tx, query string, dest interface{}, args ...interface{})
 
 	for rows.Next() {
 		found = true
-		err = scanHelper.Scan(rows, dest)
+		err = scanHelper.Scan(u, rows, dest)
 		break
 	}
 
@@ -192,8 +192,8 @@ func RunQueryTx(tx *sql.Tx, query string, dest interface{}, args ...interface{})
 type DBRowCallback func(row *sql.Rows)
 
 // ForEachRow - reads sql and runs a function fo every row
-func ForEachRow(db *sql.DB, query string, callback DBRowCallback, args ...interface{}) error {
-	rows, err := db.Query(query, args...)
+func (u *DbUtils) ForEachRow(query string, callback DBRowCallback, args ...interface{}) error {
+	rows, err := u.db.Query(query, args...)
 	if err != nil {
 		return err
 	}
@@ -212,7 +212,7 @@ func ForEachRow(db *sql.DB, query string, callback DBRowCallback, args ...interf
 }
 
 // ForEachRowTx - reads sql and runs a function fo every row
-func ForEachRowTx(tx *sql.Tx, query string, callback DBRowCallback, args ...interface{}) error {
+func (u *DbUtils) ForEachRowTx(tx *sql.Tx, query string, callback DBRowCallback, args ...interface{}) error {
 	rows, err := tx.Query(query, args...)
 	if err != nil {
 		return err

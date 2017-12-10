@@ -54,6 +54,15 @@ func Date2string(val time.Time, format string) string {
 	default:
 		return ""
 	}
+
+}
+
+func String2dateNoErr(sval string, format string) time.Time {
+	dt, err := String2date(sval, format)
+	if err != nil {
+		panic(err)
+	}
+	return dt
 }
 
 func String2date(sval string, format string) (time.Time, error) {
