@@ -45,8 +45,16 @@ func (u *DbUtils) setDbType(dbType string) {
 	u.RLock()
 	defer u.RUnlock()
 
-	if len(dbType) == 0 || (dbType != "postgres" && dbType != "oci8" && dbType != "sqlite3" && dbType != "mysql") {
-		panic("DbType must be one of: postgres, oci8, sqlite3 or mysql")
+	dbtypes := []string{
+		"postgres",
+		"oci8",
+		"sqlite3",
+		"mysql",
+		"mssql",
+	}
+
+	if len(dbType) == 0 || !stringInSlice(dbType, dbtypes) {
+		panic("DbType must be one of: " + strings.Join(dbtypes, ", "))
 	}
 
 	u.dbType = strings.ToLower(dbType)

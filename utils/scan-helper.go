@@ -30,7 +30,7 @@ func (s *SQLScanHelper) Scan(rows *sql.Rows, dest interface{}) error {
 	s.RLock()
 	defer s.RUnlock()
 
-	if len(s.columnNames) == 0 {
+	if s.columnNames == nil || len(s.columnNames) == 0 {
 		cols, err := rows.Columns()
 		if err != nil {
 			return err
