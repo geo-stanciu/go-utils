@@ -43,9 +43,10 @@ func (s *SQLScanHelper) Scan(rows *sql.Rows, dest interface{}) error {
 	structVal := reflect.ValueOf(dest)
 
 	for i, colName := range s.columnNames {
-		fieldVal := structVal.Elem().FieldByName(strings.Title(colName))
+		fieldVal := structVal.Elem().FieldByName(strings.Title(strings.ToLower(colName)))
+
 		if !fieldVal.IsValid() {
-			return fmt.Errorf(colName + "field not valid")
+			return fmt.Errorf(colName + " field not valid")
 		}
 		if fieldVal.CanSet() {
 			pointers[i] = fieldVal.Addr().Interface()

@@ -89,13 +89,20 @@ func (u *DbUtils) PQuery(query string) string {
 		}
 	}
 
-	if u.dbType == "mssql" {
+	if u.dbType == "postgres" {
+		q = strings.Replace(q, "current_timestamp", "current_timestamp at time zone 'UTC'", -1)
+	} else if u.dbType == "mysql" {
+		q = strings.Replace(q, "current_timestamp", "UTC_TIMESTAMP()", -1)
+	} else if u.dbType == "mssql" {
+		q = strings.Replace(q, "current_timestamp", "getutcdate()", -1)
 		q = strings.Replace(q, "DATE ?", "convert(date, ?)", -1)
 		q = strings.Replace(q, "TIMESTAMP ?", "convert(datetime, ?)", -1)
 	} else if u.dbType == "sqlite3" {
 		q = strings.Replace(q, "DATE ?", "date(?)", -1)
 		q = strings.Replace(q, "TIMESTAMP ?", "datetime(?)", -1)
-	}
+	} /*else if u.dbType == "oci8" {
+		q = strings.Replace(q, "current_timestamp", "extract(day from(sys_extract_utc(systimestamp) - to_timestamp('1970-01-01', 'YYYY-MM-DD'))) * 86400000 + to_number(to_char(sys_extract_utc(systimestamp), 'SSSSSFF3'))", -1)
+	}*/
 
 	return q
 }
