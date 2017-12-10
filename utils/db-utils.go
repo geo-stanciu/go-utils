@@ -89,7 +89,10 @@ func (u *DbUtils) PQuery(query string) string {
 		}
 	}
 
-	if u.dbType == "sqlite3" {
+	if u.dbType == "mssql" {
+		q = strings.Replace(q, "DATE ?", "convert(date, ?)", -1)
+		q = strings.Replace(q, "TIMESTAMP ?", "convert(datetime, ?)", -1)
+	} else if u.dbType == "sqlite3" {
 		q = strings.Replace(q, "DATE ?", "date(?)", -1)
 		q = strings.Replace(q, "TIMESTAMP ?", "datetime(?)", -1)
 	}
