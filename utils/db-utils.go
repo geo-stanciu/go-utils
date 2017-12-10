@@ -10,6 +10,19 @@ import (
 	"time"
 )
 
+const (
+	// Postgres - defines PostgreSQL sql driver name
+	Postgres string = "postgres"
+	// Oracle - defines Oracle sql driver name
+	Oracle string = "oci8"
+	// Sqlite - defines Sqlite3 driver name
+	Sqlite string = "sqlite3"
+	// MySQL - defiens MySQL driver name
+	MySQL string = "mysql"
+	// SQLServer - defines Microsoft SQL Server driver name
+	SQLServer string = "mssql"
+)
+
 // NullTime represents a time.Time that may be null. NullTime implements the
 // sql.Scanner interface so it can be used as a scan destination, similar to
 // sql.NullString.
@@ -46,11 +59,11 @@ func (u *DbUtils) setDbType(dbType string) {
 	defer u.RUnlock()
 
 	dbtypes := []string{
-		"postgres",
-		"oci8",
-		"sqlite3",
-		"mysql",
-		"mssql",
+		Postgres,
+		Oracle,
+		Sqlite,
+		MySQL,
+		SQLServer,
 	}
 
 	if len(dbType) == 0 || !stringInSlice(dbType, dbtypes) {
@@ -59,9 +72,9 @@ func (u *DbUtils) setDbType(dbType string) {
 
 	u.dbType = strings.ToLower(dbType)
 
-	if u.dbType == "postgres" {
+	if u.dbType == Postgres {
 		u.prefix = "$"
-	} else if u.dbType == "oci8" {
+	} else if u.dbType == Oracle {
 		u.prefix = ":"
 	} else {
 		u.prefix = ""
@@ -89,18 +102,20 @@ func (u *DbUtils) PQuery(query string) string {
 		}
 	}
 
-	if u.dbType == "postgres" {
+	if u.dbType == Postgres {
 		q = strings.Replace(q, "current_timestamp", "current_timestamp at time zone 'UTC'", -1)
-	} else if u.dbType == "mysql" {
+	} else if u.dbType == MySQL {
 		q = strings.Replace(q, "current_timestamp", "UTC_TIMESTAMP()", -1)
-	} else if u.dbType == "mssql" {
+	} else if u.dbType == SQLServer {
+		q = strings.Replace(q, "getdate()", "getutcdate()", -1)
 		q = strings.Replace(q, "current_timestamp", "getutcdate()", -1)
 		q = strings.Replace(q, "DATE ?", "convert(date, ?)", -1)
 		q = strings.Replace(q, "TIMESTAMP ?", "convert(datetime, ?)", -1)
-	} else if u.dbType == "sqlite3" {
+	} else if u.dbType == Sqlite {
 		q = strings.Replace(q, "DATE ?", "date(?)", -1)
 		q = strings.Replace(q, "TIMESTAMP ?", "datetime(?)", -1)
-	} else if u.dbType == "oci8" {
+	} else if u.dbType == Oracle {
+		q = strings.Replace(q, "sysdate", "sys_extract_utc(systimestamp)", -1)
 		q = strings.Replace(q, "current_timestamp", "sys_extract_utc(systimestamp)", -1)
 	}
 

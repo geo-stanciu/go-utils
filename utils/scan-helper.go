@@ -60,7 +60,7 @@ func (s *SQLScanHelper) Scan(u *DbUtils, rows *sql.Rows, dest interface{}) error
 		return err
 	}
 
-	if u.dbType == "oci8" {
+	if u.dbType == Oracle {
 		// in oci, the timestamp is comming up as local time zone
 		// even if you ask for the UTC
 		dt := time.Now()
