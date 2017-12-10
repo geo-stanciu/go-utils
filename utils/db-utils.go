@@ -103,6 +103,7 @@ func (u *DbUtils) PQuery(query string) string {
 	}
 
 	if u.dbType == Postgres {
+		q = strings.Replace(q, "now()", "now() at time zone 'UTC'", -1)
 		q = strings.Replace(q, "current_timestamp", "current_timestamp at time zone 'UTC'", -1)
 	} else if u.dbType == MySQL {
 		q = strings.Replace(q, "current_timestamp", "UTC_TIMESTAMP()", -1)
