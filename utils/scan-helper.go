@@ -9,8 +9,8 @@ import (
 )
 
 // SQLScanHelper helper class for reading sql to Struct
-// Columns must be named the same
-// Ex: in sql a column name is col1, in struct must be Col1
+// Columns in struct must be marked with a `sql:"col_name"` tag
+// Ex: in sql a column name is col1, in struct the col tag must be `sql:"col1"`
 type SQLScanHelper struct {
 	sync.RWMutex
 	columnNames []string
