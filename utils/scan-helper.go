@@ -2,7 +2,6 @@ package utils
 
 import (
 	"database/sql"
-	"fmt"
 	"reflect"
 	"strings"
 	"sync"
@@ -40,18 +39,24 @@ func (s *SQLScanHelper) Scan(u *DbUtils, rows *sql.Rows, dest interface{}) error
 		s.columnNames = cols
 	}
 
-	pointers := make([]interface{}, len(s.columnNames))
-	structVal := reflect.ValueOf(dest)
+	nrCols := len(s.columnNames)
+	pointers := make([]interface{}, nrCols)
+	fieldTypes := make([]reflect.Type, nrCols)
+
+	structVal := reflect.ValueOf(dest).Elem()
+	nFields := structVal.NumField()
 
 	for i, colName := range s.columnNames {
-		loweredcolname := strings.ToLower(colName)
-		fieldVal := structVal.Elem().FieldByName(strings.Title(loweredcolname))
+		loweredColName := strings.ToLower(colName)
+		for j := 0; j < nFields; j++ {
+			typeField := structVal.Type().Field(j)
+			tag := typeField.Tag
 
-		if !fieldVal.IsValid() {
-			return fmt.Errorf(colName + " field not valid")
-		}
-		if fieldVal.CanSet() {
-			pointers[i] = fieldVal.Addr().Interface()
+			if tag.Get("sql") == loweredColName {
+				pointers[i] = structVal.Field(j).Addr().Interface()
+				fieldTypes[i] = typeField.Type
+				break
+			}
 		}
 	}
 
@@ -64,13 +69,11 @@ func (s *SQLScanHelper) Scan(u *DbUtils, rows *sql.Rows, dest interface{}) error
 		// in oci, the timestamp is comming up as local time zone
 		// even if you ask for the UTC
 		dt := time.Now()
+		dtType := reflect.TypeOf(dt)
 
-		for _, colName := range s.columnNames {
-			loweredcolname := strings.ToLower(colName)
-			fieldVal := structVal.Elem().FieldByName(strings.Title(loweredcolname))
-
-			if fieldVal.IsValid() && fieldVal.Type() == reflect.TypeOf(dt) {
-				dtval := fieldVal.Addr().Interface().(*time.Time)
+		for i := 0; i < nrCols; i++ {
+			if fieldTypes[i] == dtType {
+				dtval := pointers[i].(*time.Time)
 				strdt := Date2string(*dtval, ISODateTimestamp)
 				*dtval = String2dateNoErr(strdt, UTCDateTimestamp)
 			}
