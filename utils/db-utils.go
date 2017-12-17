@@ -72,17 +72,19 @@ func (u *DbUtils) setDbType(dbType string) {
 
 	u.dbType = strings.ToLower(dbType)
 
-	if u.dbType == Postgres {
+	switch u.dbType {
+	case Postgres:
 		u.prefix = "$"
-	} else if u.dbType == Oracle {
+	case Oracle:
 		u.prefix = ":"
-	} else {
+	default:
 		u.prefix = ""
 	}
 }
 
 // PQuery prepares query for run by changing params written as ? to $1, $2, etc
-// for postgres and :1, :2, etc for oracle
+// for postgres and :1, :2, etc for oracle.
+// Also, some alterations to the query will be made to get dates as UTC
 func (u *DbUtils) PQuery(query string) string {
 	q := query
 	i := 1
@@ -102,20 +104,29 @@ func (u *DbUtils) PQuery(query string) string {
 		}
 	}
 
-	if u.dbType == Postgres {
+	switch u.dbType {
+	case Postgres:
 		q = strings.Replace(q, "now()", "now() at time zone 'UTC'", -1)
 		q = strings.Replace(q, "current_timestamp", "current_timestamp at time zone 'UTC'", -1)
-	} else if u.dbType == MySQL {
+
+	case MySQL:
+		q = strings.Replace(q, "now()", "UTC_TIMESTAMP()", -1)
 		q = strings.Replace(q, "current_timestamp", "UTC_TIMESTAMP()", -1)
-	} else if u.dbType == SQLServer {
+		q = strings.Replace(q, "DATE ?", "?", -1)
+		q = strings.Replace(q, "TIMESTAMP ?", "?", -1)
+
+	case SQLServer:
 		q = strings.Replace(q, "getdate()", "getutcdate()", -1)
 		q = strings.Replace(q, "current_timestamp", "getutcdate()", -1)
 		q = strings.Replace(q, "DATE ?", "convert(date, ?)", -1)
 		q = strings.Replace(q, "TIMESTAMP ?", "convert(datetime, ?)", -1)
-	} else if u.dbType == Sqlite {
+
+	case Sqlite:
 		q = strings.Replace(q, "DATE ?", "date(?)", -1)
 		q = strings.Replace(q, "TIMESTAMP ?", "datetime(?)", -1)
-	} else if u.dbType == Oracle {
+
+	case Oracle:
+		q = strings.Replace(q, "systimestamp", "sys_extract_utc(systimestamp)", -1)
 		q = strings.Replace(q, "sysdate", "sys_extract_utc(systimestamp)", -1)
 		q = strings.Replace(q, "current_timestamp", "sys_extract_utc(systimestamp)", -1)
 	}

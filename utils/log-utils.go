@@ -14,18 +14,20 @@ type logItem struct {
 }
 
 type AuditLog struct {
-	log     *logrus.Logger
-	dbUtils *DbUtils
-	queue   chan logItem
-	wg      *sync.WaitGroup
+	log       *logrus.Logger
+	logSource string
+	dbUtils   *DbUtils
+	queue     chan logItem
+	wg        *sync.WaitGroup
 }
 
 func (a *AuditLog) SetWaitGroup(wg *sync.WaitGroup) {
 	a.wg = wg
 }
 
-func (a *AuditLog) SetLoggerAndDatabase(log *logrus.Logger, dbUtils *DbUtils) {
+func (a *AuditLog) SetLogger(logSource string, log *logrus.Logger, dbUtils *DbUtils) {
 	a.log = log
+	a.logSource = logSource
 	a.dbUtils = dbUtils
 	a.queue = make(chan logItem, 128)
 }
@@ -39,12 +41,12 @@ func (a *AuditLog) processQueue() {
 
 	query := a.dbUtils.PQuery(`
 		INSERT INTO audit_log (
-			log_time, audit_msg
+			log_time, log_source, audit_msg
 		)
-		VALUES (?, ?)
+		VALUES (?, ?, ?)
 	`)
 
-	_, err := a.dbUtils.db.Exec(query, li.dt, li.msg)
+	_, err := a.dbUtils.db.Exec(query, li.dt, a.logSource, li.msg)
 
 	if err != nil {
 		fmt.Println("log error: ", err)
