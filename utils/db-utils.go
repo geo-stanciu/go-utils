@@ -89,25 +89,12 @@ func (u *DbUtils) PQuery(query string) string {
 	q := query
 	i := 1
 
-	if len(u.prefix) > 0 {
-		for {
-			idx := strings.Index(q, "?")
-
-			if idx < 0 {
-				break
-			}
-
-			prm := fmt.Sprintf("%s%d", u.prefix, i)
-			i++
-
-			q = strings.Replace(q, "?", prm, 1)
-		}
-	}
-
 	switch u.dbType {
 	case Postgres:
 		q = strings.Replace(q, "now()", "now() at time zone 'UTC'", -1)
 		q = strings.Replace(q, "current_timestamp", "current_timestamp at time zone 'UTC'", -1)
+		q = strings.Replace(q, "DATE ?", "?", -1)
+		q = strings.Replace(q, "TIMESTAMP ?", "?", -1)
 
 	case MySQL:
 		q = strings.Replace(q, "now()", "UTC_TIMESTAMP()", -1)
@@ -129,6 +116,21 @@ func (u *DbUtils) PQuery(query string) string {
 		q = strings.Replace(q, "systimestamp", "sys_extract_utc(systimestamp)", -1)
 		q = strings.Replace(q, "sysdate", "sys_extract_utc(systimestamp)", -1)
 		q = strings.Replace(q, "current_timestamp", "sys_extract_utc(systimestamp)", -1)
+	}
+
+	if len(u.prefix) > 0 {
+		for {
+			idx := strings.Index(q, "?")
+
+			if idx < 0 {
+				break
+			}
+
+			prm := fmt.Sprintf("%s%d", u.prefix, i)
+			i++
+
+			q = strings.Replace(q, "?", prm, 1)
+		}
 	}
 
 	return q
