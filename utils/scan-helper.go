@@ -19,16 +19,16 @@ type SQLScanHelper struct {
 // Clear - clears the columns array.
 // Used to be able to reuse the scan helper for another SQL
 func (s *SQLScanHelper) Clear() {
-	s.RLock()
-	defer s.RUnlock()
+	s.Lock()
+	defer s.Unlock()
 
 	s.columnNames = nil
 }
 
 // Scan - reads sql statement into a struct
 func (s *SQLScanHelper) Scan(u *DbUtils, rows *sql.Rows, dest interface{}) error {
-	s.RLock()
-	defer s.RUnlock()
+	s.Lock()
+	defer s.Unlock()
 
 	if s.columnNames == nil || len(s.columnNames) == 0 {
 		cols, err := rows.Columns()

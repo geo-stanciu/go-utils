@@ -55,8 +55,8 @@ type DbUtils struct {
 }
 
 func (u *DbUtils) setDbType(dbType string) {
-	u.RLock()
-	defer u.RUnlock()
+	u.Lock()
+	defer u.Unlock()
 
 	dbtypes := []string{
 		Postgres,
@@ -138,8 +138,8 @@ func (u *DbUtils) PQuery(query string) string {
 
 // Connect2Database - connect to a database
 func (u *DbUtils) Connect2Database(db **sql.DB, dbType, dbURL string) error {
-	u.RLock()
-	defer u.RUnlock()
+	u.Lock()
+	defer u.Unlock()
 
 	var err error
 	u.setDbType(dbType)
