@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -48,16 +47,12 @@ func (nt NullTime) Value() (driver.Value, error) {
 // DbUtils can be used to prepare queries by changing the sql param notations
 // as defined by each supported database
 type DbUtils struct {
-	sync.RWMutex
 	db     *sql.DB
 	dbType string
 	prefix string
 }
 
 func (u *DbUtils) setDbType(dbType string) {
-	u.Lock()
-	defer u.Unlock()
-
 	dbtypes := []string{
 		Postgres,
 		Oracle,
@@ -84,7 +79,9 @@ func (u *DbUtils) setDbType(dbType string) {
 
 // PQuery prepares query for run by changing params written as ? to $1, $2, etc
 // for postgres and :1, :2, etc for oracle.
-// Also, some alterations to the query will be made to get dates as UTC
+// Also, some alterations to the query will be made:
+//     - get dates as UTC
+//     - in MySQL - replaces quote identifiers with backticks
 func (u *DbUtils) PQuery(query string) string {
 	q := query
 	i := 1
@@ -97,10 +94,12 @@ func (u *DbUtils) PQuery(query string) string {
 		q = strings.Replace(q, "TIMESTAMP ?", "?", -1)
 
 	case MySQL:
+		backquote := `` + "`" + ``
 		q = strings.Replace(q, "now()", "UTC_TIMESTAMP()", -1)
 		q = strings.Replace(q, "current_timestamp", "UTC_TIMESTAMP()", -1)
 		q = strings.Replace(q, "DATE ?", "?", -1)
 		q = strings.Replace(q, "TIMESTAMP ?", "?", -1)
+		q = strings.Replace(q, `"`, backquote, -1)
 
 	case SQLServer:
 		q = strings.Replace(q, "getdate()", "getutcdate()", -1)
@@ -138,9 +137,6 @@ func (u *DbUtils) PQuery(query string) string {
 
 // Connect2Database - connect to a database
 func (u *DbUtils) Connect2Database(db **sql.DB, dbType, dbURL string) error {
-	u.Lock()
-	defer u.Unlock()
-
 	var err error
 	u.setDbType(dbType)
 
