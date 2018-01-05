@@ -8,6 +8,7 @@ import (
 	"time"
 )
 
+// GetUserHomeDir - Get User Home Dir
 func GetUserHomeDir() string {
 	if runtime.GOOS == "windows" {
 		home := os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
@@ -19,19 +20,22 @@ func GetUserHomeDir() string {
 	return os.Getenv("HOME")
 }
 
+// InTimeSpan - Checks if date is in time interval
 func InTimeSpan(start, end, check time.Time) bool {
 	return check.After(start) && check.Before(end)
 }
 
+// InvokeMethodByName - Invokes Method By Name
 func InvokeMethodByName(any interface{}, name string, args ...interface{}) []reflect.Value {
 	inputs := make([]reflect.Value, len(args))
-	for i, _ := range args {
+	for i := range args {
 		inputs[i] = reflect.ValueOf(args[i])
 	}
 
 	return reflect.ValueOf(any).MethodByName(name).Call(inputs)
 }
 
+// String2int - String to int
 func String2int(sval string) int {
 	val, err := strconv.Atoi(sval)
 
@@ -42,6 +46,7 @@ func String2int(sval string) int {
 	return val
 }
 
+// ContainsRepeatingGroups - Contains Repeating Groups
 func ContainsRepeatingGroups(str string) bool {
 	groupSize := 2
 	length := len(str) - 1

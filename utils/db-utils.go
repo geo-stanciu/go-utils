@@ -44,6 +44,28 @@ func (nt NullTime) Value() (driver.Value, error) {
 	return nt.Time, nil
 }
 
+// PreparedQuery - prepared query and parameters
+type PreparedQuery struct {
+	Query string
+	Args  []interface{}
+}
+
+// SetArg - Set Arg Value
+func (pq *PreparedQuery) SetArg(i int, val interface{}) {
+	if i < 0 {
+		panic(errors.New("invalid index argument"))
+	}
+
+	if pq.Args == nil || len(pq.Args) < i {
+		l := len(pq.Args)
+		for k := 0; k < l; k++ {
+			pq.Args = append(pq.Args, nil)
+		}
+	}
+
+	pq.Args[i] = val
+}
+
 // DbUtils can be used to prepare queries by changing the sql param notations
 // as defined by each supported database
 type DbUtils struct {
@@ -82,7 +104,10 @@ func (u *DbUtils) setDbType(dbType string) {
 // Also, some alterations to the query will be made:
 //     - get dates as UTC
 //     - in MySQL - replaces quote identifiers with backticks
-func (u *DbUtils) PQuery(query string) string {
+func (u *DbUtils) PQuery(query string, args ...interface{}) *PreparedQuery {
+	pq := PreparedQuery{}
+	pq.Args = args
+
 	q := query
 	i := 1
 
@@ -132,7 +157,9 @@ func (u *DbUtils) PQuery(query string) string {
 		}
 	}
 
-	return q
+	pq.Query = q
+
+	return &pq
 }
 
 // Connect2Database - connect to a database
@@ -155,12 +182,32 @@ func (u *DbUtils) Connect2Database(db **sql.DB, dbType, dbURL string) error {
 	return nil
 }
 
+// Exec - exec query without result
+func (u *DbUtils) Exec(pq *PreparedQuery) (sql.Result, error) {
+	res, err := u.db.Exec(pq.Query, pq.Args...)
+	if err != nil {
+		return res, err
+	}
+
+	return res, nil
+}
+
+// ExecTx - exec query without result
+func (u *DbUtils) ExecTx(tx *sql.Tx, pq *PreparedQuery) (sql.Result, error) {
+	res, err := tx.Exec(pq.Query, pq.Args...)
+	if err != nil {
+		return res, err
+	}
+
+	return res, nil
+}
+
 // RunQuery - reads sql into a struct
-func (u *DbUtils) RunQuery(query string, dest interface{}, args ...interface{}) error {
+func (u *DbUtils) RunQuery(pq *PreparedQuery, dest interface{}) error {
 	scanHelper := SQLScanHelper{}
 	found := false
 
-	rows, err := u.db.Query(query, args...)
+	rows, err := u.db.Query(pq.Query, pq.Args...)
 	if err != nil {
 		return err
 	}
@@ -185,11 +232,11 @@ func (u *DbUtils) RunQuery(query string, dest interface{}, args ...interface{}) 
 }
 
 // RunQueryTx - reads sql into a struct (from a transaction)
-func (u *DbUtils) RunQueryTx(tx *sql.Tx, query string, dest interface{}, args ...interface{}) error {
+func (u *DbUtils) RunQueryTx(tx *sql.Tx, pq *PreparedQuery, dest interface{}) error {
 	scanHelper := SQLScanHelper{}
 	found := false
 
-	rows, err := tx.Query(query, args...)
+	rows, err := tx.Query(pq.Query, pq.Args...)
 	if err != nil {
 		return err
 	}
@@ -217,8 +264,8 @@ func (u *DbUtils) RunQueryTx(tx *sql.Tx, query string, dest interface{}, args ..
 type DBRowCallback func(row *sql.Rows)
 
 // ForEachRow - reads sql and runs a function fo every row
-func (u *DbUtils) ForEachRow(query string, callback DBRowCallback, args ...interface{}) error {
-	rows, err := u.db.Query(query, args...)
+func (u *DbUtils) ForEachRow(pq *PreparedQuery, callback DBRowCallback) error {
+	rows, err := u.db.Query(pq.Query, pq.Args...)
 	if err != nil {
 		return err
 	}
@@ -237,8 +284,8 @@ func (u *DbUtils) ForEachRow(query string, callback DBRowCallback, args ...inter
 }
 
 // ForEachRowTx - reads sql and runs a function fo every row
-func (u *DbUtils) ForEachRowTx(tx *sql.Tx, query string, callback DBRowCallback, args ...interface{}) error {
-	rows, err := tx.Query(query, args...)
+func (u *DbUtils) ForEachRowTx(tx *sql.Tx, pq *PreparedQuery, callback DBRowCallback) error {
+	rows, err := tx.Query(pq.Query, pq.Args...)
 	if err != nil {
 		return err
 	}

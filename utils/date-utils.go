@@ -7,18 +7,29 @@ import (
 )
 
 const (
-	ISODate           string = "2006-01-02"
-	ISODateTime       string = "2006-01-02 15:04:05"
-	ISODateTimestamp  string = "2006-01-02 15:04:05.000"
-	ISODateTimeZ      string = "2006-01-02 15:04:05Z07:00"
+	// ISODate - iso date format
+	ISODate string = "2006-01-02"
+	// ISODateTime - iso date time format
+	ISODateTime string = "2006-01-02 15:04:05"
+	// ISODateTimestamp - iso timestamp format
+	ISODateTimestamp string = "2006-01-02 15:04:05.000"
+	// ISODateTimeZ - iso datetime with timezone format
+	ISODateTimeZ string = "2006-01-02 15:04:05Z07:00"
+	// ISODateTimestampZ - iso timestamp with timezone format
 	ISODateTimestampZ string = "2006-01-02 15:04:05.000Z07:00"
-	DMY               string = "02/01/2006"
-	DMYTime           string = "02/01/2006 15:04:05"
-	UTCDateTime       string = "UTC"
-	UTCDateTimestamp  string = "UTCTimestamp"
-	DateOffset        string = "Z07:00"
+	// DMY - dd/MM/yyyy
+	DMY string = "02/01/2006"
+	// DMYTime - dd/MM/yyyy HH:m:ss
+	DMYTime string = "02/01/2006 15:04:05"
+	// UTCDateTime - ISODateTime at UTC
+	UTCDateTime string = "UTC"
+	// UTCDateTimestamp - ISODateTimestamp at UTC
+	UTCDateTimestamp string = "UTCTimestamp"
+	// DateOffset - time zone offset
+	DateOffset string = "Z07:00"
 )
 
+// IsISODate - checks if is in iso date format
 func IsISODate(sval string) bool {
 	_, err := String2date(sval, ISODate)
 
@@ -29,6 +40,7 @@ func IsISODate(sval string) bool {
 	return true
 }
 
+// IsISODateTime - checks if is in iso datetime format
 func IsISODateTime(sval string) bool {
 	_, err := String2date(sval, ISODateTime)
 
@@ -39,10 +51,12 @@ func IsISODateTime(sval string) bool {
 	return true
 }
 
+// DateFromISODateTime - Date From ISODateTime
 func DateFromISODateTime(sval string) (time.Time, error) {
 	return String2date(sval, ISODateTime)
 }
 
+// Date2string - Date to string
 func Date2string(val time.Time, format string) string {
 	switch format {
 	case ISODate, ISODateTime, ISODateTimestamp, ISODateTimeZ, ISODateTimestampZ, DMY, DMYTime:
@@ -57,6 +71,7 @@ func Date2string(val time.Time, format string) string {
 
 }
 
+// String2dateNoErr - String to date NoErrCheck
 func String2dateNoErr(sval string, format string) time.Time {
 	dt, err := String2date(sval, format)
 	if err != nil {
@@ -65,6 +80,7 @@ func String2dateNoErr(sval string, format string) time.Time {
 	return dt
 }
 
+// String2date - String to date
 func String2date(sval string, format string) (time.Time, error) {
 	switch format {
 	case ISODate, ISODateTime, ISODateTimestamp, ISODateTimeZ, ISODateTimestampZ, DMY, DMYTime, DateOffset:
@@ -105,16 +121,19 @@ func String2date(sval string, format string) (time.Time, error) {
 	}
 }
 
+// Server2ClientDmy - Server2ClientDmy
 func Server2ClientDmy(r *http.Request, serverTime time.Time) string {
 	t := Server2ClientLocal(r, serverTime)
 	return Date2string(t, DMY)
 }
 
+// Server2ClientDmyTime - Server2ClientDmyTime
 func Server2ClientDmyTime(r *http.Request, serverTime time.Time) string {
 	t := Server2ClientLocal(r, serverTime)
 	return Date2string(t, DMYTime)
 }
 
+// Server2ClientLocal - Server2ClientLocal
 func Server2ClientLocal(r *http.Request, serverTime time.Time) time.Time {
 	timeOffset := 0
 

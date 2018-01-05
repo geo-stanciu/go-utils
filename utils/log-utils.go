@@ -13,6 +13,7 @@ type logItem struct {
 	msg string
 }
 
+// AuditLog - Audit log helper
 type AuditLog struct {
 	log       *logrus.Logger
 	logSource string
@@ -21,10 +22,12 @@ type AuditLog struct {
 	wg        *sync.WaitGroup
 }
 
+// SetWaitGroup - SetWaitGroup
 func (a *AuditLog) SetWaitGroup(wg *sync.WaitGroup) {
 	a.wg = wg
 }
 
+// SetLogger - SetLogger
 func (a *AuditLog) SetLogger(logSource string, log *logrus.Logger, dbUtils *DbUtils) {
 	a.log = log
 	a.logSource = logSource
@@ -39,15 +42,16 @@ func (a *AuditLog) processQueue() {
 
 	li := <-a.queue
 
-	query := a.dbUtils.PQuery(`
+	pq := a.dbUtils.PQuery(`
 		INSERT INTO audit_log (
 			log_time, log_source, audit_msg
 		)
 		VALUES (?, ?, ?)
-	`)
+	`, li.dt,
+		a.logSource,
+		li.msg)
 
-	_, err := a.dbUtils.db.Exec(query, li.dt, a.logSource, li.msg)
-
+	_, err := a.dbUtils.Exec(pq)
 	if err != nil {
 		fmt.Println("log error: ", err)
 	}
@@ -70,6 +74,7 @@ func (a AuditLog) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
+// Log - Log Helper function
 func (a AuditLog) Log(err error, msgType string, msg string, details ...interface{}) {
 	fields := make(map[string]interface{})
 
