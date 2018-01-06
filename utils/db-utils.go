@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"bytes"
 	"database/sql"
 	"database/sql/driver"
 	"errors"
@@ -99,17 +100,24 @@ func (u *DbUtils) setDbType(dbType string) {
 	}
 }
 
-// PQuery prepares query for run by changing params written as ? to $1, $2, etc
-// for postgres and :1, :2, etc for oracle.
-// Also, some alterations to the query will be made:
-//     - get dates as UTC
-//     - in MySQL - replaces quote identifiers with backticks
+// PQuery prepares query for running.
+// Some alterations to the query will be made:
+//   - get dates as UTC
+//   - in Postgresql
+//       - changes params written as ? to $1, $2, etc
+//   - in MySQL
+//       - replaces quote identifiers with backticks
+//   - in SQL Server
+//       - replaces "LIMIT ? OFFSET ?" with "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"
+//       - switches parameters set for OFFSET and LIMIT to reflect the changed query
+//       - Limitations:
+//           - LIMIT ? OFFSET ? must be the last 2 parameters in the query
+//   - in Oracle
+//       - changes params written as ? to :1, :2, etc
 func (u *DbUtils) PQuery(query string, args ...interface{}) *PreparedQuery {
 	pq := PreparedQuery{}
 	pq.Args = args
-
 	q := query
-	i := 1
 
 	switch u.dbType {
 	case Postgres:
@@ -117,6 +125,8 @@ func (u *DbUtils) PQuery(query string, args ...interface{}) *PreparedQuery {
 		q = strings.Replace(q, "current_timestamp", "current_timestamp at time zone 'UTC'", -1)
 		q = strings.Replace(q, "DATE ?", "?", -1)
 		q = strings.Replace(q, "TIMESTAMP ?", "?", -1)
+		q = strings.Replace(q, "date ?", "?", -1)
+		q = strings.Replace(q, "timestamp ?", "?", -1)
 
 	case MySQL:
 		backquote := `` + "`" + ``
@@ -124,6 +134,8 @@ func (u *DbUtils) PQuery(query string, args ...interface{}) *PreparedQuery {
 		q = strings.Replace(q, "current_timestamp", "UTC_TIMESTAMP()", -1)
 		q = strings.Replace(q, "DATE ?", "?", -1)
 		q = strings.Replace(q, "TIMESTAMP ?", "?", -1)
+		q = strings.Replace(q, "date ?", "?", -1)
+		q = strings.Replace(q, "timestamp ?", "?", -1)
 		q = strings.Replace(q, `"`, backquote, -1)
 
 	case SQLServer:
@@ -131,10 +143,58 @@ func (u *DbUtils) PQuery(query string, args ...interface{}) *PreparedQuery {
 		q = strings.Replace(q, "current_timestamp", "getutcdate()", -1)
 		q = strings.Replace(q, "DATE ?", "convert(date, ?)", -1)
 		q = strings.Replace(q, "TIMESTAMP ?", "convert(datetime, ?)", -1)
+		q = strings.Replace(q, "date ?", "convert(date, ?)", -1)
+		q = strings.Replace(q, "timestamp ?", "convert(datetime, ?)", -1)
+
+		idx1 := strings.Index(q, "LIMIT ?")
+		idx2 := strings.Index(q, "OFFSET ?")
+		offsetLwCase := false
+
+		if idx1 < 0 {
+			idx1 = strings.Index(q, "limit ?")
+		}
+
+		if idx2 < 0 {
+			idx2 = strings.Index(q, "offset ?")
+			offsetLwCase = true
+		}
+
+		if idx1 > -1 {
+			if idx2 > -1 {
+				idx3 := idx1 + len("LIMIT ?")
+				idx4 := idx2 + len("OFFSET ?")
+				q1 := q[:idx1]
+				q2 := q[idx3:idx2]
+				q3 := q[idx4:]
+
+				q = fmt.Sprintf("%sOFFSET ? ROWS%sFETCH NEXT ? ROWS ONLY%s", q1, q2, q3)
+
+				if pq.Args != nil {
+					n := len(pq.Args)
+					if n >= 2 {
+						pq.Args = append(pq.Args[:n-2], pq.Args[n-1], pq.Args[n-2])
+					}
+				}
+			} else {
+				idx3 := idx1 + len("LIMIT ?")
+				q1 := q[:idx1]
+				q3 := q[idx3:]
+
+				q = fmt.Sprintf("%sOFFSET 0 ROWS\nFETCH NEXT ? ROWS ONLY%s", q1, q3)
+			}
+		} else if idx2 > -1 {
+			if offsetLwCase {
+				q = strings.Replace(q, "offset ?", "OFFSET ? ROWS", -1)
+			} else {
+				q = strings.Replace(q, "OFFSET ?", "OFFSET ? ROWS", -1)
+			}
+		}
 
 	case Sqlite:
 		q = strings.Replace(q, "DATE ?", "date(?)", -1)
 		q = strings.Replace(q, "TIMESTAMP ?", "datetime(?)", -1)
+		q = strings.Replace(q, "date ?", "date(?)", -1)
+		q = strings.Replace(q, "timestamp ?", "datetime(?)", -1)
 
 	case Oracle:
 		q = strings.Replace(q, "systimestamp", "sys_extract_utc(systimestamp)", -1)
@@ -142,22 +202,33 @@ func (u *DbUtils) PQuery(query string, args ...interface{}) *PreparedQuery {
 		q = strings.Replace(q, "current_timestamp", "sys_extract_utc(systimestamp)", -1)
 	}
 
+	i := 1
+	pos := 0
+	idx := -1
+	var qbuf bytes.Buffer
+
 	if len(u.prefix) > 0 {
 		for {
-			idx := strings.Index(q, "?")
+			idx = strings.Index(q[pos:], "?")
 
 			if idx < 0 {
+				qbuf.WriteString(q[pos:])
 				break
+			} else {
+				qbuf.WriteString(q[pos : pos+idx])
+				pos += idx + 1
 			}
 
 			prm := fmt.Sprintf("%s%d", u.prefix, i)
 			i++
 
-			q = strings.Replace(q, "?", prm, 1)
+			qbuf.WriteString(prm)
 		}
-	}
 
-	pq.Query = q
+		pq.Query = qbuf.String()
+	} else {
+		pq.Query = q
+	}
 
 	return &pq
 }
