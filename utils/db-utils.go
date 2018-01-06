@@ -57,11 +57,17 @@ func (pq *PreparedQuery) SetArg(i int, val interface{}) {
 		panic(errors.New("invalid index argument"))
 	}
 
-	if pq.Args == nil || len(pq.Args) < i {
-		l := len(pq.Args)
-		for k := 0; k < l; k++ {
+	n := 0
+	if pq.Args != nil {
+		n = len(pq.Args)
+	}
+
+	if n < i {
+		for k := 0; k < n; k++ {
 			pq.Args = append(pq.Args, nil)
 		}
+	} else if n == 0 {
+		pq.Args = append(pq.Args, nil)
 	}
 
 	pq.Args[i] = val
@@ -200,6 +206,54 @@ func (u *DbUtils) PQuery(query string, args ...interface{}) *PreparedQuery {
 		q = strings.Replace(q, "systimestamp", "sys_extract_utc(systimestamp)", -1)
 		q = strings.Replace(q, "sysdate", "sys_extract_utc(systimestamp)", -1)
 		q = strings.Replace(q, "current_timestamp", "sys_extract_utc(systimestamp)", -1)
+		q = strings.Replace(q, "DATE ?", "to_date(?, 'yyyy-mm-dd')", -1)
+		q = strings.Replace(q, "TIMESTAMP ?", "to_timestamp(?, 'yyyy-mm-dd HH:mm:ss')", -1)
+		q = strings.Replace(q, "date ?", "to_date(?, 'yyyy-mm-dd')", -1)
+		q = strings.Replace(q, "timestamp ?", "to_timestamp(?, 'yyyy-mm-dd HH:mm:ss')", -1)
+
+		idx1 := strings.Index(q, "LIMIT ?")
+		idx2 := strings.Index(q, "OFFSET ?")
+		offsetLwCase := false
+
+		if idx1 < 0 {
+			idx1 = strings.Index(q, "limit ?")
+		}
+
+		if idx2 < 0 {
+			idx2 = strings.Index(q, "offset ?")
+			offsetLwCase = true
+		}
+
+		if idx1 > -1 {
+			if idx2 > -1 {
+				idx3 := idx1 + len("LIMIT ?")
+				idx4 := idx2 + len("OFFSET ?")
+				q1 := q[:idx1]
+				q2 := q[idx3:idx2]
+				q3 := q[idx4:]
+
+				q = fmt.Sprintf("%sOFFSET ? ROWS%sFETCH NEXT ? ROWS ONLY%s", q1, q2, q3)
+
+				if pq.Args != nil {
+					n := len(pq.Args)
+					if n >= 2 {
+						pq.Args = append(pq.Args[:n-2], pq.Args[n-1], pq.Args[n-2])
+					}
+				}
+			} else {
+				idx3 := idx1 + len("LIMIT ?")
+				q1 := q[:idx1]
+				q3 := q[idx3:]
+
+				q = fmt.Sprintf("%sOFFSET 0 ROWS\nFETCH NEXT ? ROWS ONLY%s", q1, q3)
+			}
+		} else if idx2 > -1 {
+			if offsetLwCase {
+				q = strings.Replace(q, "offset ?", "OFFSET ? ROWS", -1)
+			} else {
+				q = strings.Replace(q, "OFFSET ?", "OFFSET ? ROWS", -1)
+			}
+		}
 	}
 
 	i := 1
@@ -229,6 +283,8 @@ func (u *DbUtils) PQuery(query string, args ...interface{}) *PreparedQuery {
 	} else {
 		pq.Query = q
 	}
+
+	//fmt.Println(pq.Query)
 
 	return &pq
 }
