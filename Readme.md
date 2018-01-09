@@ -88,15 +88,15 @@ pq3 := dbUtils.PQuery("update table1 set col1 = ? where col2 = ?", val1, val2)
 ### Execute Queries
 
 Execute queries with one of:
-- Exec - for DML queries (insert, update, delete)
-- ExecTx - for DML queries (insert, update, delete)
+- dbUtils.**Exec** - for DML queries (insert, update, delete)
+- dbUtils.**ExecTx** - for DML queries (insert, update, delete)
          - tx is a transaction - type *sql.Tx
-- RunQuery - for single row queries
-- RunQueryTx - for single row queries
+- dbUtils.**RunQuery** - for single row queries
+- dbUtils.**RunQueryTx** - for single row queries
              - tx is a transaction - type *sql.Tx
-- dbUtils.ForEachRow,
-- dbUtils.ForEachRowTx (where tx is a transaction - type *sql.Tx)
-- or standard Exec, Query and QueryRow methods of the database/sql package
+- dbUtils.**ForEachRow**,
+- dbUtils.**ForEachRowTx** (where tx is a transaction - type *sql.Tx)
+- or standard **Exec**, **Query** and **QueryRow** methods of the database/sql package
 
 ```golang
 var err error
@@ -254,7 +254,9 @@ case err != nil:
 ```
 
 ```golang
-rows, err := db.Query("select id, name from foo")
+pq = dbUtils.PQuery("select id, name from foo")
+
+rows, err := db.Query(pq.Query, pq.Args...)
 if err != nil {
     return err
 }
