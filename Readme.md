@@ -234,6 +234,8 @@ err = dbUtils.ForEachRow(pq, func(row *sql.Rows) {
 })
 ```
 
+## Use standard databse/sql package methods
+
 ```golang
 var roleID int
 
