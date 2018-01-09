@@ -210,9 +210,9 @@ err = dbUtils.ForEachRowTx(tx, pq, func(row *sql.Rows) {
 
 ## Use a column scanner
 
-Using a scanner (matches sql with struct columns)
-Columns in struct must be declared with "sql" tags
-Tags must be columns in the sql query
+Using a scanner (matches sql with struct columns).
+Columns in struct must be declared with "sql" tags.
+Tags must be columns in the sql query.
 
 ```golang
 type MembershipRole struct {
