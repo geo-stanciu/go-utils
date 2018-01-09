@@ -1,27 +1,37 @@
+## Goals
+
 Provides easier acces to databases and logging to database.
 Tries to implement as much database abstraction as posible.
 Allows you to use ? as parameter placeholder in: oracle 12.1, sql server 2017, postgresql, mariadb and mysql.
 
+## Examples
+
 For usage examples, look at: https://github.com/geo-stanciu/go-tryouts/tree/master/go-website
 
-// download
+## License
 
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
+
+## Download
+```
 go get "github.com/geo-stanciu/go-utils/utils"
 go get "github.com/sirupsen/logrus"
+```
 
-Usage:
+## Usage:
 
-// declare as vars:
-
+### Declare as vars:
+```golang
 var (
     log                 = logrus.New()
     audit               = utils.AuditLog{}
     dbUtils             *utils.DbUtils{}
     db                  *sql.DB
 )
+```
 
-// initialize:
-
+### initialize:
+```golang
 func init() {
     // Log as JSON instead of the default ASCII formatter.
     log.Formatter = new(logrus.JSONFormatter)
@@ -30,31 +40,38 @@ func init() {
     // init databaseutils
     dbUtils = new(utils.DbUtils)
 }
+```
 
-// in main:
+### in main:
 
+```golang
 var err error
 var wg sync.WaitGroup
 
 // connect to the database:
-
 err = dbUtils.Connect2Database(&db, "dbtype", "dburl")
 if err != nil {
     log.Println(err)
     return
 }
 defer db.Close()
+```
 
+```golang
 // setup logger
 audit.SetLogger("appname", log, &dbUtils)
 audit.SetWaitGroup(&wg)
 
 mw := io.MultiWriter(os.Stdout, audit)
 log.Out = mw
+```
 
-// have fun using db, dbutils and logger
-// declare each query as:
+### Have fun
 
+have fun using db, dbutils and logger
+declare each query as:
+
+```golang
 pq := dbUtils.PQuery("select count(*) c1 from table1")
 
 pq2 := dbUtils.PQuery(`
@@ -66,19 +83,22 @@ pq2 := dbUtils.PQuery(`
    val3)
 
 pq3 := dbUtils.PQuery("update table1 set col1 = ? where col2 = ?", val1, val2)
+```
 
+### Execute Queries
 
-// execute queries with one of:
-// - Exec - for DML queries (insert, update, delete)
-// - ExecTx - for DML queries (insert, update, delete)
-            - tx is a transaction - type *sql.Tx
-// - RunQuery - for single row queries
-// - RunQueryTx - for single row queries
-//              - tx is a transaction - type *sql.Tx
-// - dbUtils.ForEachRow,
-// - dbUtils.ForEachRowTx (where tx is a transaction - type *sql.Tx)
-// - or standard Exec, Query and QueryRow methods of the database/sql package
+Execute queries with one of:
+- Exec - for DML queries (insert, update, delete)
+- ExecTx - for DML queries (insert, update, delete)
+         - tx is a transaction - type *sql.Tx
+- RunQuery - for single row queries
+- RunQueryTx - for single row queries
+             - tx is a transaction - type *sql.Tx
+- dbUtils.ForEachRow,
+- dbUtils.ForEachRowTx (where tx is a transaction - type *sql.Tx)
+- or standard Exec, Query and QueryRow methods of the database/sql package
 
+```golang
 var err error
 pq := dbUtils.PQuery(`
     INSERT INTO role (role) VALUES (?)
@@ -88,9 +108,9 @@ _, err = dbUtils.Exec(pq)
 if err != nil {
     return err
 }
+```
 
-/////////////////////////////////////////////////////
-
+```golang
 var err error
 pq := dbUtils.PQuery(`
     INSERT INTO role (role) VALUES (?)
@@ -100,8 +120,13 @@ _, err = dbUtils.ExecTx(tx, pq)
 if err != nil {
     return err
 }
+```
 
-/////////////////////////////////////////////////////
+```golang
+type MembershipRole struct {
+    RoleID   int    `sql:"role_id"`
+    Rolename string `sql:"role"`
+}
 
 var err error
 pq := dbUtils.PQuery(`
@@ -119,8 +144,13 @@ case err == sql.ErrNoRows:
 case err != nil:
     return err
 }
+```
 
-/////////////////////////////////////////////////////
+```golang
+type MembershipRole struct {
+    RoleID   int    `sql:"role_id"`
+    Rolename string `sql:"role"`
+}
 
 var err error
 pq := dbUtils.PQuery(`
@@ -138,9 +168,9 @@ case err == sql.ErrNoRows:
 case err != nil:
     return err
 }
+```
 
-/////////////////////////////////////////////////////
-
+```golang
 type MembershipRole struct {
     RoleID   int    `sql:"role_id"`
     Rolename string `sql:"role"`
@@ -157,9 +187,9 @@ err = dbUtils.ForEachRow(pq, func(row *sql.Rows) {
 
     roles = append(roles, r)
 })
+```
 
-/////////////////////////////////////////////////////
-
+```golang
 type MembershipRole struct {
     RoleID   int    `sql:"role_id"`
     Rolename string `sql:"role"`
@@ -176,13 +206,15 @@ err = dbUtils.ForEachRowTx(tx, pq, func(row *sql.Rows) {
 
     roles = append(roles, r)
 })
+```
 
-/////////////////////////////////////////////////////
+## Use a column scanner
 
-// using a scanner (matches sql with struct columns)
-// columns in struct must be declared with "sql" tags
-// tags must be columns in the sql query
+Using a scanner (matches sql with struct columns)
+Columns in struct must be declared with "sql" tags
+Tags must be columns in the sql query
 
+```golang
 type MembershipRole struct {
     RoleID   int    `sql:"role_id"`
     Rolename string `sql:"role"`
@@ -200,9 +232,9 @@ err = dbUtils.ForEachRow(pq, func(row *sql.Rows) {
 
     lres.Rates = append(lres.Rates, &r)
 })
+```
 
-/////////////////////////////////////////////////////
-
+```golang
 var roleID int
 
 pq = dbUtils.PQuery(`
@@ -217,9 +249,9 @@ case err == sql.ErrNoRows:
 case err != nil:
     return err
 }
+```
 
-/////////////////////////////////////////////////////
-
+```golang
 rows, err := db.Query("select id, name from foo")
 if err != nil {
     return err
@@ -243,3 +275,4 @@ if err != nil {
 }
 
 rows.Close()
+```
