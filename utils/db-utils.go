@@ -107,6 +107,8 @@ func (u *DbUtils) setDbType(dbType string) {
 }
 
 // PQuery prepares query for running.
+// Query parameter placeholders will be written as ? in all suported databses.
+//   Ex: select col1 from table1 where col2 = ?
 // Some alterations to the query will be made:
 //   - get dates as UTC
 //   - in Postgresql

@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"reflect"
 	"sync"
 	"time"
 
@@ -100,7 +101,13 @@ func (a AuditLog) Log(err error, msgType string, msg string, details ...interfac
 			if i%2 == 0 {
 				key = detail.(string)
 			} else {
-				fields[key] = detail
+				if detail != nil {
+					if reflect.ValueOf(detail).Kind() == reflect.Ptr {
+						fields[key] = reflect.Indirect(reflect.ValueOf(detail)).Elem()
+					} else {
+						fields[key] = detail
+					}
+				}
 			}
 		}
 	}
