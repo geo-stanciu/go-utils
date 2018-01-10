@@ -103,7 +103,7 @@ func (a AuditLog) Log(err error, msgType string, msg string, details ...interfac
 			} else {
 				if detail != nil {
 					if reflect.ValueOf(detail).Kind() == reflect.Ptr {
-						fields[key] = reflect.Indirect(reflect.ValueOf(detail)).Elem()
+						fields[key] = reflect.Indirect(reflect.ValueOf(detail)).Interface()
 					} else {
 						fields[key] = detail
 					}
