@@ -287,20 +287,11 @@ func (u *DbUtils) PQuery(query string, args ...interface{}) *PreparedQuery {
 			idx2 = strings.Index(q, "offset ?")
 		}
 
-		var idx3 int
-		var idx4 int
-		var q1 string
-		var q2 string
-
 		if idx1 > -1 {
-			idx3 = strings.Index(q, "from")
-			idx4 = strings.Index(q, "FROM")
-			idx3 = GetMinGreaterThanZero(idx3, idx4)
-			q1 = strings.TrimSpace(q[:idx3])
-			q2 = strings.TrimSpace(q[idx3+len("from") : idx1])
+			q1 := strings.TrimSpace(q[:idx1])
 
 			if idx2 > -1 {
-				q = fmt.Sprintf("SELECT * FROM (\n%s, rownum rnum\nfrom %s)\nWHERE rnum BETWEEN ? AND ?", q1, q2)
+				q = fmt.Sprintf("SELECT * FROM (\n%s)\nWHERE rownum BETWEEN ? AND ?", q1)
 
 				if pq.Args != nil {
 					n := len(pq.Args)
@@ -313,16 +304,12 @@ func (u *DbUtils) PQuery(query string, args ...interface{}) *PreparedQuery {
 					}
 				}
 			} else {
-				q = fmt.Sprintf("SELECT * FROM (\n%s, rownum rnum\nfrom %s)\nWHERE rnum BETWEEN 0 AND ?", q1, q2)
+				q = fmt.Sprintf("SELECT * FROM (\n%s)\nWHERE rownum BETWEEN 0 AND ?", q1)
 			}
 		} else if idx2 > -1 {
-			idx3 = strings.Index(q, "from")
-			idx4 = strings.Index(q, "FROM")
-			idx3 = GetMinGreaterThanZero(idx3, idx4)
-			q1 = strings.TrimSpace(q[:idx3])
-			q2 = strings.TrimSpace(q[idx3+len("from") : idx2])
+			q1 := strings.TrimSpace(q[:idx2])
 
-			q = fmt.Sprintf("SELECT * FROM (\n%s, rownum rnum\nfrom %s)\nWHERE rnum >= ?", q1, q2)
+			q = fmt.Sprintf("SELECT * FROM (\n%s)\nWHERE rownum >= ?", q1)
 
 			if pq.Args != nil {
 				n := len(pq.Args)
