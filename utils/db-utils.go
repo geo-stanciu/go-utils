@@ -15,6 +15,8 @@ const (
 	Postgres string = "postgres"
 	// Oracle - defines Oracle sql driver name
 	Oracle string = "oci8"
+	// Oracle11g - defines Oracle sql driver name - Oracle11g
+	Oracle11g string = "oracle11g"
 	// Sqlite - defines Sqlite3 driver name
 	Sqlite string = "sqlite3"
 	// MySQL - defiens MySQL driver name
@@ -85,6 +87,7 @@ func (u *DbUtils) setDbType(dbType string) {
 	dbtypes := []string{
 		Postgres,
 		Oracle,
+		Oracle11g,
 		Sqlite,
 		MySQL,
 		SQLServer,
@@ -100,6 +103,8 @@ func (u *DbUtils) setDbType(dbType string) {
 	case Postgres:
 		u.prefix = "$"
 	case Oracle:
+		u.prefix = ":"
+	case Oracle11g:
 		u.prefix = ":"
 	default:
 		u.prefix = ""
@@ -256,6 +261,72 @@ func (u *DbUtils) PQuery(query string, args ...interface{}) *PreparedQuery {
 				q = strings.Replace(q, "OFFSET ?", "OFFSET ? ROWS", -1)
 			}
 		}
+
+	case Oracle11g:
+		q = strings.Replace(q, "systimestamp", "sys_extract_utc(systimestamp)", -1)
+		q = strings.Replace(q, "sysdate", "sys_extract_utc(systimestamp)", -1)
+		q = strings.Replace(q, "current_timestamp", "sys_extract_utc(systimestamp)", -1)
+		q = strings.Replace(q, "DATE ?", "to_date(?, 'yyyy-mm-dd')", -1)
+		q = strings.Replace(q, "TIMESTAMP ?", "to_timestamp(?, 'yyyy-mm-dd HH:mm:ss')", -1)
+		q = strings.Replace(q, "date ?", "to_date(?, 'yyyy-mm-dd')", -1)
+		q = strings.Replace(q, "timestamp ?", "to_timestamp(?, 'yyyy-mm-dd HH:mm:ss')", -1)
+
+		idx1 := strings.Index(q, "LIMIT ?")
+		idx2 := strings.Index(q, "OFFSET ?")
+
+		if idx1 < 0 {
+			idx1 = strings.Index(q, "limit ?")
+		}
+
+		if idx2 < 0 {
+			idx2 = strings.Index(q, "offset ?")
+		}
+
+		var idx3 int
+		var idx4 int
+		var q1 string
+		var q2 string
+
+		if idx1 > -1 {
+			idx3 = strings.Index(q, "from")
+			idx4 = strings.Index(q, "FROM")
+			idx3 = GetMinGreaterThanZero(idx3, idx4)
+			q1 = strings.TrimSpace(q[:idx3])
+			q2 = strings.TrimSpace(q[idx3+len("from") : idx1])
+
+			if idx2 > -1 {
+				q = fmt.Sprintf("SELECT * FROM (\n%s, rownum rnum\nfrom %s)\nWHERE rnum BETWEEN ? AND ?", q1, q2)
+
+				if pq.Args != nil {
+					n := len(pq.Args)
+					if n >= 2 {
+						pq.Args = append(pq.Args[:n-2], pq.Args[n-1], pq.Args[n-2])
+						offset := pq.Args[n-2].(int)
+						nrRows := pq.Args[n-1].(int)
+						pq.Args[n-2] = offset + 1
+						pq.Args[n-1] = offset + nrRows
+					}
+				}
+			} else {
+				q = fmt.Sprintf("SELECT * FROM (\n%s, rownum rnum\nfrom %s)\nWHERE rnum BETWEEN 0 AND ?", q1, q2)
+			}
+		} else if idx2 > -1 {
+			idx3 = strings.Index(q, "from")
+			idx4 = strings.Index(q, "FROM")
+			idx3 = GetMinGreaterThanZero(idx3, idx4)
+			q1 = strings.TrimSpace(q[:idx3])
+			q2 = strings.TrimSpace(q[idx3+len("from") : idx2])
+
+			q = fmt.Sprintf("SELECT * FROM (\n%s, rownum rnum\nfrom %s)\nWHERE rnum >= ?", q1, q2)
+
+			if pq.Args != nil {
+				n := len(pq.Args)
+				if n >= 1 {
+					offset := pq.Args[n-1].(int)
+					pq.Args[n-1] = offset + 1
+				}
+			}
+		}
 	}
 
 	i := 1
@@ -286,8 +357,6 @@ func (u *DbUtils) PQuery(query string, args ...interface{}) *PreparedQuery {
 		pq.Query = q
 	}
 
-	//fmt.Println(pq.Query)
-
 	return &pq
 }
 
@@ -296,7 +365,12 @@ func (u *DbUtils) Connect2Database(db **sql.DB, dbType, dbURL string) error {
 	var err error
 	u.setDbType(dbType)
 
-	*db, err = sql.Open(dbType, dbURL)
+	if dbType == Oracle11g {
+		*db, err = sql.Open(Oracle, dbURL)
+	} else {
+		*db, err = sql.Open(dbType, dbURL)
+	}
+
 	if err != nil {
 		return errors.New("Can't connect to the database, go error " + fmt.Sprintf("%s", err))
 	}

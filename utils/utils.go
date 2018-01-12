@@ -80,3 +80,19 @@ func stringInSlice(a string, list []string) bool {
 	}
 	return false
 }
+
+// GetMinGreaterThanZero - gets the first of two numbers
+func GetMinGreaterThanZero(a, b int) int {
+	if a > 0 && b > 0 {
+		if a <= b {
+			return a
+		}
+		return b
+	} else if a > 0 {
+		return a
+	} else if b > 0 {
+		return b
+	}
+
+	return -1
+}
