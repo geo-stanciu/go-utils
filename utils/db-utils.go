@@ -13,9 +13,11 @@ import (
 const (
 	// Postgres - defines PostgreSQL sql driver name
 	Postgres string = "postgres"
-	// Oracle - defines Oracle sql driver name
-	Oracle string = "oci8"
-	// Oracle11g - defines Oracle sql driver name - Oracle11g
+	// Oracle - defines Oracle sql driver name - for Oracle 12c+
+	Oracle string = "oracle"
+	// Oci8 - defines Oracle sql driver name - for Oracle 12c+
+	Oci8 string = "oci8"
+	// Oracle11g - defines Oracle sql driver name - for Oracle11g
 	Oracle11g string = "oracle11g"
 	// Sqlite - defines Sqlite3 driver name
 	Sqlite string = "sqlite3"
@@ -86,6 +88,7 @@ type DbUtils struct {
 func (u *DbUtils) setDbType(dbType string) {
 	dbtypes := []string{
 		Postgres,
+		Oci8,
 		Oracle,
 		Oracle11g,
 		Sqlite,
@@ -102,6 +105,8 @@ func (u *DbUtils) setDbType(dbType string) {
 	switch u.dbType {
 	case Postgres:
 		u.prefix = "$"
+	case Oci8:
+		u.prefix = ":"
 	case Oracle:
 		u.prefix = ":"
 	case Oracle11g:
@@ -132,8 +137,8 @@ func (u *DbUtils) PQuery(query string, args ...interface{}) *PreparedQuery {
 	pq.Args = args
 	q := query
 
-	switch u.dbType {
-	case Postgres:
+	switch {
+	case u.dbType == Postgres:
 		q = strings.Replace(q, "now()", "now() at time zone 'UTC'", -1)
 		q = strings.Replace(q, "current_timestamp", "current_timestamp at time zone 'UTC'", -1)
 		q = strings.Replace(q, "DATE ?", "?", -1)
@@ -141,7 +146,7 @@ func (u *DbUtils) PQuery(query string, args ...interface{}) *PreparedQuery {
 		q = strings.Replace(q, "date ?", "?", -1)
 		q = strings.Replace(q, "timestamp ?", "?", -1)
 
-	case MySQL:
+	case u.dbType == MySQL:
 		backquote := `` + "`" + ``
 		q = strings.Replace(q, "now()", "UTC_TIMESTAMP()", -1)
 		q = strings.Replace(q, "current_timestamp", "UTC_TIMESTAMP()", -1)
@@ -151,7 +156,7 @@ func (u *DbUtils) PQuery(query string, args ...interface{}) *PreparedQuery {
 		q = strings.Replace(q, "timestamp ?", "?", -1)
 		q = strings.Replace(q, `"`, backquote, -1)
 
-	case SQLServer:
+	case u.dbType == SQLServer:
 		q = strings.Replace(q, "getdate()", "getutcdate()", -1)
 		q = strings.Replace(q, "current_timestamp", "getutcdate()", -1)
 		q = strings.Replace(q, "DATE ?", "convert(date, ?)", -1)
@@ -203,13 +208,13 @@ func (u *DbUtils) PQuery(query string, args ...interface{}) *PreparedQuery {
 			}
 		}
 
-	case Sqlite:
+	case u.dbType == Sqlite:
 		q = strings.Replace(q, "DATE ?", "date(?)", -1)
 		q = strings.Replace(q, "TIMESTAMP ?", "datetime(?)", -1)
 		q = strings.Replace(q, "date ?", "date(?)", -1)
 		q = strings.Replace(q, "timestamp ?", "datetime(?)", -1)
 
-	case Oracle:
+	case u.dbType == Oracle || u.dbType == Oci8:
 		q = strings.Replace(q, "systimestamp", "sys_extract_utc(systimestamp)", -1)
 		q = strings.Replace(q, "sysdate", "sys_extract_utc(systimestamp)", -1)
 		q = strings.Replace(q, "current_timestamp", "sys_extract_utc(systimestamp)", -1)
@@ -262,7 +267,7 @@ func (u *DbUtils) PQuery(query string, args ...interface{}) *PreparedQuery {
 			}
 		}
 
-	case Oracle11g:
+	case u.dbType == Oracle11g:
 		q = strings.Replace(q, "systimestamp", "sys_extract_utc(systimestamp)", -1)
 		q = strings.Replace(q, "sysdate", "sys_extract_utc(systimestamp)", -1)
 		q = strings.Replace(q, "current_timestamp", "sys_extract_utc(systimestamp)", -1)
@@ -365,8 +370,8 @@ func (u *DbUtils) Connect2Database(db **sql.DB, dbType, dbURL string) error {
 	var err error
 	u.setDbType(dbType)
 
-	if dbType == Oracle11g {
-		*db, err = sql.Open(Oracle, dbURL)
+	if dbType == Oracle11g || dbType == Oracle {
+		*db, err = sql.Open(Oci8, dbURL)
 	} else {
 		*db, err = sql.Open(dbType, dbURL)
 	}
