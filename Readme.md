@@ -178,14 +178,15 @@ type MembershipRole struct {
 
 var roles []MembershipRole
 var err error
-err = dbUtils.ForEachRow(pq, func(row *sql.Rows) {
+err = dbUtils.ForEachRow(pq, func(row *sql.Rows, sc *utils.SQLScanHelper) {
     var r MembershipRole
     err = row.Scan(&r.RoleID, &r.Rolename)
     if err != nil {
-        return
+        return err
     }
 
     roles = append(roles, r)
+    return nil
 })
 ```
 
