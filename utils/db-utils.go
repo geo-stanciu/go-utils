@@ -468,12 +468,12 @@ func (u *DbUtils) ForEachRow(pq *PreparedQuery, callback DBRowCallback) error {
 
 	for rows.Next() {
 		err = callback(rows)
+		if err != nil {
+			return err
+		}
 	}
 
-	if err == nil {
-		err = rows.Err()
-	}
-
+	err = rows.Err()
 	if err != nil {
 		return err
 	}
@@ -491,12 +491,12 @@ func (u *DbUtils) ForEachRowTx(tx *sql.Tx, pq *PreparedQuery, callback DBRowCall
 
 	for rows.Next() {
 		err = callback(rows)
+		if err != nil {
+			return err
+		}
 	}
 
-	if err == nil {
-		err = rows.Err()
-	}
-
+	err = rows.Err()
 	if err != nil {
 		return err
 	}
