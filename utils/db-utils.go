@@ -456,7 +456,7 @@ func (u *DbUtils) RunQueryTx(tx *sql.Tx, pq *PreparedQuery, dest interface{}) er
 }
 
 // DBRowCallback - callback type
-type DBRowCallback func(row *sql.Rows)
+type DBRowCallback func(row *sql.Rows) error
 
 // ForEachRow - reads sql and runs a function fo every row
 func (u *DbUtils) ForEachRow(pq *PreparedQuery, callback DBRowCallback) error {
@@ -467,10 +467,13 @@ func (u *DbUtils) ForEachRow(pq *PreparedQuery, callback DBRowCallback) error {
 	defer rows.Close()
 
 	for rows.Next() {
-		callback(rows)
+		err = callback(rows)
 	}
 
-	err = rows.Err()
+	if err == nil {
+		err = rows.Err()
+	}
+
 	if err != nil {
 		return err
 	}
@@ -487,10 +490,13 @@ func (u *DbUtils) ForEachRowTx(tx *sql.Tx, pq *PreparedQuery, callback DBRowCall
 	defer rows.Close()
 
 	for rows.Next() {
-		callback(rows)
+		err = callback(rows)
 	}
 
-	err = rows.Err()
+	if err == nil {
+		err = rows.Err()
+	}
+
 	if err != nil {
 		return err
 	}
