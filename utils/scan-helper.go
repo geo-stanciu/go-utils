@@ -37,6 +37,14 @@ func (s *SQLScan) Scan(u *DbUtils, rows *sql.Rows, dest interface{}) error {
 		}
 
 		s.columnNames = cols
+
+		if u.dbType == Oci8 || u.dbType == Oracle || u.dbType == Oracle11g {
+			for i, colName := range s.columnNames {
+				if colName[0:1] != "\"" {
+					s.columnNames[i] = strings.ToLower(colName)
+				}
+			}
+		}
 	}
 
 	nrCols := len(s.columnNames)
@@ -47,12 +55,11 @@ func (s *SQLScan) Scan(u *DbUtils, rows *sql.Rows, dest interface{}) error {
 	nFields := structVal.NumField()
 
 	for i, colName := range s.columnNames {
-		loweredColName := strings.ToLower(colName)
 		for j := 0; j < nFields; j++ {
 			typeField := structVal.Type().Field(j)
 			tag := typeField.Tag
 
-			if tag.Get("sql") == loweredColName {
+			if tag.Get("sql") == colName {
 				pointers[i] = structVal.Field(j).Addr().Interface()
 				fieldTypes[i] = typeField.Type
 				break
