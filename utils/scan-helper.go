@@ -8,17 +8,17 @@ import (
 	"time"
 )
 
-// SQLScanHelper helper class for reading sql to Struct
+// SQLScan helper class for reading sql to Struct
 // Columns in struct must be marked with a `sql:"col_name"` tag
 // Ex: in sql a column name is col1, in struct the col tag must be `sql:"col1"`
-type SQLScanHelper struct {
+type SQLScan struct {
 	sync.RWMutex
 	columnNames []string
 }
 
 // Clear - clears the columns array.
 // Used to be able to reuse the scan helper for another SQL
-func (s *SQLScanHelper) Clear() {
+func (s *SQLScan) Clear() {
 	s.Lock()
 	defer s.Unlock()
 
@@ -26,7 +26,7 @@ func (s *SQLScanHelper) Clear() {
 }
 
 // Scan - reads sql statement into a struct
-func (s *SQLScanHelper) Scan(u *DbUtils, rows *sql.Rows, dest interface{}) error {
+func (s *SQLScan) Scan(u *DbUtils, rows *sql.Rows, dest interface{}) error {
 	s.Lock()
 	defer s.Unlock()
 

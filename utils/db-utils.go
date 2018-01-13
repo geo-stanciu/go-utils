@@ -399,7 +399,7 @@ func (u *DbUtils) ExecTx(tx *sql.Tx, pq *PreparedQuery) (sql.Result, error) {
 
 // RunQuery - reads sql into a struct
 func (u *DbUtils) RunQuery(pq *PreparedQuery, dest interface{}) error {
-	scanHelper := SQLScanHelper{}
+	scanHelper := SQLScan{}
 	found := false
 
 	rows, err := u.db.Query(pq.Query, pq.Args...)
@@ -428,7 +428,7 @@ func (u *DbUtils) RunQuery(pq *PreparedQuery, dest interface{}) error {
 
 // RunQueryTx - reads sql into a struct (from a transaction)
 func (u *DbUtils) RunQueryTx(tx *sql.Tx, pq *PreparedQuery, dest interface{}) error {
-	scanHelper := SQLScanHelper{}
+	scanHelper := SQLScan{}
 	found := false
 
 	rows, err := tx.Query(pq.Query, pq.Args...)
@@ -456,11 +456,11 @@ func (u *DbUtils) RunQueryTx(tx *sql.Tx, pq *PreparedQuery, dest interface{}) er
 }
 
 // DBRowCallback - callback type
-type DBRowCallback func(row *sql.Rows, sc *SQLScanHelper) error
+type DBRowCallback func(row *sql.Rows, sc *SQLScan) error
 
 // ForEachRow - reads sql and runs a function fo every row
 func (u *DbUtils) ForEachRow(pq *PreparedQuery, callback DBRowCallback) error {
-	sc := new(SQLScanHelper)
+	sc := new(SQLScan)
 
 	rows, err := u.db.Query(pq.Query, pq.Args...)
 	if err != nil {
@@ -485,7 +485,7 @@ func (u *DbUtils) ForEachRow(pq *PreparedQuery, callback DBRowCallback) error {
 
 // ForEachRowTx - reads sql and runs a function fo every row
 func (u *DbUtils) ForEachRowTx(tx *sql.Tx, pq *PreparedQuery, callback DBRowCallback) error {
-	sc := new(SQLScanHelper)
+	sc := new(SQLScan)
 
 	rows, err := tx.Query(pq.Query, pq.Args...)
 	if err != nil {

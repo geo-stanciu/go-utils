@@ -178,7 +178,7 @@ type MembershipRole struct {
 
 var roles []MembershipRole
 var err error
-err = dbUtils.ForEachRow(pq, func(row *sql.Rows, sc *utils.SQLScanHelper) {
+err = dbUtils.ForEachRow(pq, func(row *sql.Rows, sc *utils.SQLScan) {
     var r MembershipRole
     err = row.Scan(&r.RoleID, &r.Rolename)
     if err != nil {
@@ -198,7 +198,7 @@ type MembershipRole struct {
 
 var roles []MembershipRole
 var err error
-err = dbUtils.ForEachRowTx(tx, pq, func(row *sql.Rows, sc *utils.SQLScanHelper) error {
+err = dbUtils.ForEachRowTx(tx, pq, func(row *sql.Rows, sc *utils.SQLScan) error {
     var r MembershipRole
     err = row.Scan(&r.RoleID, &r.Rolename)
     if err != nil {
@@ -224,7 +224,7 @@ type MembershipRole struct {
 
 var roles []MembershipRole
 var err error
-err = dbUtils.ForEachRow(pq, func(row *sql.Rows, sc *utils.SQLScanHelper) error {
+err = dbUtils.ForEachRow(pq, func(row *sql.Rows, sc *utils.SQLScan) error {
     var r models.Rate
     err = sc.Scan(&dbUtils, row, &r)
     if err != nil {
