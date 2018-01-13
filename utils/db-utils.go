@@ -456,10 +456,12 @@ func (u *DbUtils) RunQueryTx(tx *sql.Tx, pq *PreparedQuery, dest interface{}) er
 }
 
 // DBRowCallback - callback type
-type DBRowCallback func(row *sql.Rows) error
+type DBRowCallback func(row *sql.Rows, sc *SQLScanHelper) error
 
 // ForEachRow - reads sql and runs a function fo every row
 func (u *DbUtils) ForEachRow(pq *PreparedQuery, callback DBRowCallback) error {
+	sc := new(SQLScanHelper)
+
 	rows, err := u.db.Query(pq.Query, pq.Args...)
 	if err != nil {
 		return err
@@ -467,7 +469,7 @@ func (u *DbUtils) ForEachRow(pq *PreparedQuery, callback DBRowCallback) error {
 	defer rows.Close()
 
 	for rows.Next() {
-		err = callback(rows)
+		err = callback(rows, sc)
 		if err != nil {
 			return err
 		}
@@ -483,6 +485,8 @@ func (u *DbUtils) ForEachRow(pq *PreparedQuery, callback DBRowCallback) error {
 
 // ForEachRowTx - reads sql and runs a function fo every row
 func (u *DbUtils) ForEachRowTx(tx *sql.Tx, pq *PreparedQuery, callback DBRowCallback) error {
+	sc := new(SQLScanHelper)
+
 	rows, err := tx.Query(pq.Query, pq.Args...)
 	if err != nil {
 		return err
@@ -490,7 +494,7 @@ func (u *DbUtils) ForEachRowTx(tx *sql.Tx, pq *PreparedQuery, callback DBRowCall
 	defer rows.Close()
 
 	for rows.Next() {
-		err = callback(rows)
+		err = callback(rows, sc)
 		if err != nil {
 			return err
 		}

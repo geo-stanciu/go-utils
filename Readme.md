@@ -197,18 +197,19 @@ type MembershipRole struct {
 
 var roles []MembershipRole
 var err error
-err = dbUtils.ForEachRowTx(tx, pq, func(row *sql.Rows) {
+err = dbUtils.ForEachRowTx(tx, pq, func(row *sql.Rows, sc *utils.SQLScanHelper) error {
     var r MembershipRole
     err = row.Scan(&r.RoleID, &r.Rolename)
     if err != nil {
-        return
+        return err
     }
 
     roles = append(roles, r)
+    return nil
 })
 ```
 
-## Use a column scanner
+## Use the column scanner
 
 Using a scanner (matches sql with struct columns).
 Columns in struct must be declared with "sql" tags.
@@ -222,15 +223,15 @@ type MembershipRole struct {
 
 var roles []MembershipRole
 var err error
-sc := utils.SQLScanHelper{}
-err = dbUtils.ForEachRow(pq, func(row *sql.Rows) {
+err = dbUtils.ForEachRow(pq, func(row *sql.Rows, sc *utils.SQLScanHelper) error {
     var r models.Rate
     err = sc.Scan(&dbUtils, row, &r)
     if err != nil {
-        return
+        return err
     }
 
     lres.Rates = append(lres.Rates, &r)
+    return nil
 })
 ```
 
