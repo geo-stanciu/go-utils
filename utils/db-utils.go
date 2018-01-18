@@ -19,8 +19,6 @@ const (
 	Oci8 string = "oci8"
 	// Oracle11g - defines Oracle sql driver name - for Oracle11g
 	Oracle11g string = "oracle11g"
-	// Sqlite - defines Sqlite3 driver name
-	Sqlite string = "sqlite3"
 	// MySQL - defiens MySQL driver name
 	MySQL string = "mysql"
 	// SQLServer - defines Microsoft SQL Server driver name
@@ -91,7 +89,6 @@ func (u *DbUtils) setDbType(dbType string) {
 		Oci8,
 		Oracle,
 		Oracle11g,
-		Sqlite,
 		MySQL,
 		SQLServer,
 	}
@@ -208,12 +205,6 @@ func (u *DbUtils) PQuery(query string, args ...interface{}) *PreparedQuery {
 				q = strings.Replace(q, "OFFSET ?", "OFFSET ? ROWS", -1)
 			}
 		}
-
-	case u.dbType == Sqlite:
-		q = strings.Replace(q, "DATE ?", "date(?)", -1)
-		q = strings.Replace(q, "TIMESTAMP ?", "datetime(?)", -1)
-		q = strings.Replace(q, "date ?", "date(?)", -1)
-		q = strings.Replace(q, "timestamp ?", "datetime(?)", -1)
 
 	case u.dbType == Oracle || u.dbType == Oci8:
 		q = strings.Replace(q, "now()", "sys_extract_utc(systimestamp)", -1)
