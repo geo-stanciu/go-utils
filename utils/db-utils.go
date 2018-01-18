@@ -157,6 +157,7 @@ func (u *DbUtils) PQuery(query string, args ...interface{}) *PreparedQuery {
 		q = strings.Replace(q, `"`, backquote, -1)
 
 	case u.dbType == SQLServer:
+		q = strings.Replace(q, "now()", "getutcdate()", -1)
 		q = strings.Replace(q, "getdate()", "getutcdate()", -1)
 		q = strings.Replace(q, "current_timestamp", "getutcdate()", -1)
 		q = strings.Replace(q, "DATE ?", "convert(date, ?)", -1)
@@ -215,6 +216,7 @@ func (u *DbUtils) PQuery(query string, args ...interface{}) *PreparedQuery {
 		q = strings.Replace(q, "timestamp ?", "datetime(?)", -1)
 
 	case u.dbType == Oracle || u.dbType == Oci8:
+		q = strings.Replace(q, "now()", "sys_extract_utc(systimestamp)", -1)
 		q = strings.Replace(q, "systimestamp", "sys_extract_utc(systimestamp)", -1)
 		q = strings.Replace(q, "sysdate", "sys_extract_utc(systimestamp)", -1)
 		q = strings.Replace(q, "current_timestamp", "sys_extract_utc(systimestamp)", -1)
@@ -268,6 +270,7 @@ func (u *DbUtils) PQuery(query string, args ...interface{}) *PreparedQuery {
 		}
 
 	case u.dbType == Oracle11g:
+		q = strings.Replace(q, "now()", "sys_extract_utc(systimestamp)", -1)
 		q = strings.Replace(q, "systimestamp", "sys_extract_utc(systimestamp)", -1)
 		q = strings.Replace(q, "sysdate", "sys_extract_utc(systimestamp)", -1)
 		q = strings.Replace(q, "current_timestamp", "sys_extract_utc(systimestamp)", -1)

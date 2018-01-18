@@ -76,13 +76,21 @@ func (s *SQLScan) Scan(u *DbUtils, rows *sql.Rows, dest interface{}) error {
 		// in oci, the timestamp is comming up as local time zone
 		// even if you ask for the UTC
 		dt := time.Now()
+		dtnull := NullTime{}
 		dtType := reflect.TypeOf(dt)
+		dtnullType := reflect.TypeOf(dtnull)
 
 		for i := 0; i < nrCols; i++ {
 			if fieldTypes[i] == dtType {
 				dtval := pointers[i].(*time.Time)
 				strdt := Date2string(*dtval, ISODateTimestamp)
 				*dtval = String2dateNoErr(strdt, UTCDateTimestamp)
+			} else if fieldTypes[i] == dtnullType {
+				dtval := pointers[i].(*NullTime)
+				if dtval.Valid {
+					strdt := Date2string((*dtval).Time, ISODateTimestamp)
+					(*dtval).Time = String2dateNoErr(strdt, UTCDateTimestamp)
+				}
 			}
 		}
 	}
