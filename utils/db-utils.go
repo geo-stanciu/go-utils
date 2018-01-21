@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"bytes"
 	"database/sql"
 	"database/sql/driver"
 	"errors"
@@ -45,34 +44,6 @@ func (nt NullTime) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return nt.Time, nil
-}
-
-// PreparedQuery - prepared query and parameters
-type PreparedQuery struct {
-	Query string
-	Args  []interface{}
-}
-
-// SetArg - Set Arg Value
-func (pq *PreparedQuery) SetArg(i int, val interface{}) {
-	if i < 0 {
-		panic(errors.New("invalid index argument"))
-	}
-
-	n := 0
-	if pq.Args != nil {
-		n = len(pq.Args)
-	}
-
-	if n < i {
-		for k := 0; k < n; k++ {
-			pq.Args = append(pq.Args, nil)
-		}
-	} else if n == 0 {
-		pq.Args = append(pq.Args, nil)
-	}
-
-	pq.Args[i] = val
 }
 
 // DbUtils can be used to prepare queries by changing the sql param notations
@@ -130,218 +101,13 @@ func (u *DbUtils) setDbType(dbType string) {
 //   - in Oracle
 //       - changes params written as ? to :1, :2, etc
 func (u *DbUtils) PQuery(query string, args ...interface{}) *PreparedQuery {
-	pq := PreparedQuery{}
-	pq.Args = args
-	q := query
-
-	switch {
-	case u.dbType == Postgres:
-		q = strings.Replace(q, "now()", "now() at time zone 'UTC'", -1)
-		q = strings.Replace(q, "current_timestamp", "current_timestamp at time zone 'UTC'", -1)
-		q = strings.Replace(q, "DATE ?", "?", -1)
-		q = strings.Replace(q, "TIMESTAMP ?", "?", -1)
-		q = strings.Replace(q, "date ?", "?", -1)
-		q = strings.Replace(q, "timestamp ?", "?", -1)
-
-	case u.dbType == MySQL:
-		backquote := `` + "`" + ``
-		q = strings.Replace(q, "now()", "UTC_TIMESTAMP()", -1)
-		q = strings.Replace(q, "current_timestamp", "UTC_TIMESTAMP()", -1)
-		q = strings.Replace(q, "DATE ?", "?", -1)
-		q = strings.Replace(q, "TIMESTAMP ?", "?", -1)
-		q = strings.Replace(q, "date ?", "?", -1)
-		q = strings.Replace(q, "timestamp ?", "?", -1)
-		q = strings.Replace(q, `"`, backquote, -1)
-
-	case u.dbType == SQLServer:
-		q = strings.Replace(q, "now()", "getutcdate()", -1)
-		q = strings.Replace(q, "getdate()", "getutcdate()", -1)
-		q = strings.Replace(q, "current_timestamp", "getutcdate()", -1)
-		q = strings.Replace(q, "DATE ?", "convert(date, ?)", -1)
-		q = strings.Replace(q, "TIMESTAMP ?", "convert(datetime, ?)", -1)
-		q = strings.Replace(q, "date ?", "convert(date, ?)", -1)
-		q = strings.Replace(q, "timestamp ?", "convert(datetime, ?)", -1)
-
-		idx1 := strings.Index(q, "LIMIT ?")
-		idx2 := strings.Index(q, "OFFSET ?")
-		offsetLwCase := false
-
-		if idx1 < 0 {
-			idx1 = strings.Index(q, "limit ?")
-		}
-
-		if idx2 < 0 {
-			idx2 = strings.Index(q, "offset ?")
-			offsetLwCase = true
-		}
-
-		if idx1 > -1 {
-			if idx2 > -1 {
-				idx3 := idx1 + len("LIMIT ?")
-				idx4 := idx2 + len("OFFSET ?")
-				q1 := q[:idx1]
-				q2 := q[idx3:idx2]
-				q3 := q[idx4:]
-
-				q = fmt.Sprintf("%sOFFSET ? ROWS%sFETCH NEXT ? ROWS ONLY%s", q1, q2, q3)
-
-				if pq.Args != nil {
-					n := len(pq.Args)
-					if n >= 2 {
-						pq.Args = append(pq.Args[:n-2], pq.Args[n-1], pq.Args[n-2])
-					}
-				}
-			} else {
-				idx3 := idx1 + len("LIMIT ?")
-				q1 := q[:idx1]
-				q3 := q[idx3:]
-
-				q = fmt.Sprintf("%sOFFSET 0 ROWS\nFETCH NEXT ? ROWS ONLY%s", q1, q3)
-			}
-		} else if idx2 > -1 {
-			if offsetLwCase {
-				q = strings.Replace(q, "offset ?", "OFFSET ? ROWS", -1)
-			} else {
-				q = strings.Replace(q, "OFFSET ?", "OFFSET ? ROWS", -1)
-			}
-		}
-
-	case u.dbType == Oracle || u.dbType == Oci8:
-		q = strings.Replace(q, "now()", "sys_extract_utc(systimestamp)", -1)
-		q = strings.Replace(q, "systimestamp", "sys_extract_utc(systimestamp)", -1)
-		q = strings.Replace(q, "sysdate", "sys_extract_utc(systimestamp)", -1)
-		q = strings.Replace(q, "current_timestamp", "sys_extract_utc(systimestamp)", -1)
-		q = strings.Replace(q, "DATE ?", "to_date(?, 'yyyy-mm-dd')", -1)
-		q = strings.Replace(q, "TIMESTAMP ?", "to_timestamp(?, 'yyyy-mm-dd HH:mm:ss')", -1)
-		q = strings.Replace(q, "date ?", "to_date(?, 'yyyy-mm-dd')", -1)
-		q = strings.Replace(q, "timestamp ?", "to_timestamp(?, 'yyyy-mm-dd HH:mm:ss')", -1)
-
-		idx1 := strings.Index(q, "LIMIT ?")
-		idx2 := strings.Index(q, "OFFSET ?")
-		offsetLwCase := false
-
-		if idx1 < 0 {
-			idx1 = strings.Index(q, "limit ?")
-		}
-
-		if idx2 < 0 {
-			idx2 = strings.Index(q, "offset ?")
-			offsetLwCase = true
-		}
-
-		if idx1 > -1 {
-			if idx2 > -1 {
-				idx3 := idx1 + len("LIMIT ?")
-				idx4 := idx2 + len("OFFSET ?")
-				q1 := q[:idx1]
-				q2 := q[idx3:idx2]
-				q3 := q[idx4:]
-
-				q = fmt.Sprintf("%sOFFSET ? ROWS%sFETCH NEXT ? ROWS ONLY%s", q1, q2, q3)
-
-				if pq.Args != nil {
-					n := len(pq.Args)
-					if n >= 2 {
-						pq.Args = append(pq.Args[:n-2], pq.Args[n-1], pq.Args[n-2])
-					}
-				}
-			} else {
-				idx3 := idx1 + len("LIMIT ?")
-				q1 := q[:idx1]
-				q3 := q[idx3:]
-
-				q = fmt.Sprintf("%sOFFSET 0 ROWS\nFETCH NEXT ? ROWS ONLY%s", q1, q3)
-			}
-		} else if idx2 > -1 {
-			if offsetLwCase {
-				q = strings.Replace(q, "offset ?", "OFFSET ? ROWS", -1)
-			} else {
-				q = strings.Replace(q, "OFFSET ?", "OFFSET ? ROWS", -1)
-			}
-		}
-
-	case u.dbType == Oracle11g:
-		q = strings.Replace(q, "now()", "sys_extract_utc(systimestamp)", -1)
-		q = strings.Replace(q, "systimestamp", "sys_extract_utc(systimestamp)", -1)
-		q = strings.Replace(q, "sysdate", "sys_extract_utc(systimestamp)", -1)
-		q = strings.Replace(q, "current_timestamp", "sys_extract_utc(systimestamp)", -1)
-		q = strings.Replace(q, "DATE ?", "to_date(?, 'yyyy-mm-dd')", -1)
-		q = strings.Replace(q, "TIMESTAMP ?", "to_timestamp(?, 'yyyy-mm-dd HH:mm:ss')", -1)
-		q = strings.Replace(q, "date ?", "to_date(?, 'yyyy-mm-dd')", -1)
-		q = strings.Replace(q, "timestamp ?", "to_timestamp(?, 'yyyy-mm-dd HH:mm:ss')", -1)
-
-		idx1 := strings.Index(q, "LIMIT ?")
-		idx2 := strings.Index(q, "OFFSET ?")
-
-		if idx1 < 0 {
-			idx1 = strings.Index(q, "limit ?")
-		}
-
-		if idx2 < 0 {
-			idx2 = strings.Index(q, "offset ?")
-		}
-
-		if idx1 > -1 {
-			q1 := strings.TrimSpace(q[:idx1])
-
-			if idx2 > -1 {
-				q = fmt.Sprintf("SELECT * FROM (\n%s)\nWHERE rownum BETWEEN ? AND ?", q1)
-
-				if pq.Args != nil {
-					n := len(pq.Args)
-					if n >= 2 {
-						pq.Args = append(pq.Args[:n-2], pq.Args[n-1], pq.Args[n-2])
-						offset := pq.Args[n-2].(int)
-						nrRows := pq.Args[n-1].(int)
-						pq.Args[n-2] = offset + 1
-						pq.Args[n-1] = offset + nrRows
-					}
-				}
-			} else {
-				q = fmt.Sprintf("SELECT * FROM (\n%s)\nWHERE rownum BETWEEN 0 AND ?", q1)
-			}
-		} else if idx2 > -1 {
-			q1 := strings.TrimSpace(q[:idx2])
-
-			q = fmt.Sprintf("SELECT * FROM (\n%s)\nWHERE rownum >= ?", q1)
-
-			if pq.Args != nil {
-				n := len(pq.Args)
-				if n >= 1 {
-					offset := pq.Args[n-1].(int)
-					pq.Args[n-1] = offset + 1
-				}
-			}
-		}
+	pq := PreparedQuery{
+		DbType:      u.dbType,
+		ParamPrefix: u.prefix,
+		Query:       query,
+		Args:        args,
 	}
-
-	i := 1
-	pos := 0
-	idx := -1
-	var qbuf bytes.Buffer
-
-	if len(u.prefix) > 0 {
-		for {
-			idx = strings.Index(q[pos:], "?")
-
-			if idx < 0 {
-				qbuf.WriteString(q[pos:])
-				break
-			} else {
-				qbuf.WriteString(q[pos : pos+idx])
-				pos += idx + 1
-			}
-
-			prm := fmt.Sprintf("%s%d", u.prefix, i)
-			i++
-
-			qbuf.WriteString(prm)
-		}
-
-		pq.Query = qbuf.String()
-	} else {
-		pq.Query = q
-	}
+	pq.Prepare()
 
 	return &pq
 }
