@@ -104,8 +104,11 @@ func (pq *PreparedQuery) modifyQuery4MySQL() {
 
 	pq.Query = q
 
-	pq.except2minus(true)
-	pq.except2minus(false)
+	// Geo
+	// MySQL does not support except or minus queries at this time
+	// left this here for MariaBD 10.3 who will support EXCEPT
+	pq.minus2except(true)
+	pq.minus2except(false)
 }
 
 func (pq *PreparedQuery) modifyQuery4MSSQL() {
@@ -262,7 +265,7 @@ func (pq *PreparedQuery) except2minus(searchUppercase bool) {
 			break
 		} else {
 			qbuf.WriteString(pq.Query[pos : pos+idx])
-			pos += idx + 1
+			pos += idx + len("except")
 		}
 
 		pos2 = pos - len("except") - 1
