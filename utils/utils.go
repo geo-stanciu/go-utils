@@ -96,3 +96,11 @@ func GetMinGreaterThanZero(a, b int) int {
 
 	return -1
 }
+
+// IsWhiteSpace checks if string is space, tab or enter
+func IsWhiteSpace(s string) bool {
+	if s == " " || s == "\t" || s == "\r" || s == "\n" {
+		return true
+	}
+	return false
+}

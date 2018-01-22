@@ -85,6 +85,9 @@ func (pq *PreparedQuery) modifyQuery4Postgres() {
 	q = strings.Replace(q, "timestamp ?", "?", -1)
 
 	pq.Query = q
+
+	pq.minus2except(true)
+	pq.minus2except(false)
 }
 
 func (pq *PreparedQuery) modifyQuery4MySQL() {
@@ -118,6 +121,8 @@ func (pq *PreparedQuery) modifyQuery4MSSQL() {
 
 	pq.Query = q
 
+	pq.minus2except(true)
+	pq.minus2except(false)
 	pq.mssqlLimitAndOffset()
 }
 
@@ -165,40 +170,12 @@ func (pq *PreparedQuery) replaceParamPlaceHolders() {
 	idx := -1
 	var qbuf bytes.Buffer
 
-	if len(pq.ParamPrefix) > 0 {
-		for {
-			idx = strings.Index(pq.Query[pos:], "?")
-
-			if idx < 0 {
-				qbuf.WriteString(pq.Query[pos:])
-				break
-			} else {
-				qbuf.WriteString(pq.Query[pos : pos+idx])
-				pos += idx + 1
-			}
-
-			prm := fmt.Sprintf("%s%d", pq.ParamPrefix, i)
-			i++
-
-			qbuf.WriteString(prm)
-		}
-
-		pq.Query = qbuf.String()
+	idx = strings.Index(pq.Query[pos:], "?")
+	if idx < 0 || len(pq.ParamPrefix) == 0 {
+		return
 	}
-}
-
-func (pq *PreparedQuery) except2minus(searchUppercase bool) {
-	pos := 0
-	idx := -1
-	var qbuf bytes.Buffer
 
 	for {
-		if searchUppercase {
-			idx = strings.Index(pq.Query[pos:], "EXCEPT")
-		} else {
-			idx = strings.Index(pq.Query[pos:], "except")
-		}
-
 		if idx < 0 {
 			qbuf.WriteString(pq.Query[pos:])
 			break
@@ -207,10 +184,102 @@ func (pq *PreparedQuery) except2minus(searchUppercase bool) {
 			pos += idx + 1
 		}
 
-		if searchUppercase {
-			qbuf.WriteString("EXCEPT")
+		prm := fmt.Sprintf("%s%d", pq.ParamPrefix, i)
+		i++
+
+		qbuf.WriteString(prm)
+		idx = strings.Index(pq.Query[pos:], "?")
+	}
+
+	pq.Query = qbuf.String()
+}
+
+func (pq *PreparedQuery) minus2except(searchUppercase bool) {
+	pos := 0
+	idx := -1
+	pos2 := 0
+	var qbuf bytes.Buffer
+
+	if searchUppercase {
+		idx = strings.Index(pq.Query[pos:], "MINUS")
+	} else {
+		idx = strings.Index(pq.Query[pos:], "minus")
+	}
+
+	if idx < 0 {
+		return
+	}
+
+	for {
+		if idx < 0 {
+			qbuf.WriteString(pq.Query[pos:])
+			break
 		} else {
-			qbuf.WriteString("minus")
+			qbuf.WriteString(pq.Query[pos : pos+idx])
+			pos += idx + len("minus")
+		}
+
+		pos2 = pos - len("minus") - 1
+		if !IsWhiteSpace(pq.Query[pos:pos+1]) || !IsWhiteSpace(pq.Query[pos2:pos2+1]) {
+			qbuf.WriteString(pq.Query[pos2+1 : pos])
+		} else {
+			if searchUppercase {
+				qbuf.WriteString("EXCEPT")
+			} else {
+				qbuf.WriteString("except")
+			}
+		}
+
+		if searchUppercase {
+			idx = strings.Index(pq.Query[pos:], "MINUS")
+		} else {
+			idx = strings.Index(pq.Query[pos:], "minus")
+		}
+	}
+
+	pq.Query = qbuf.String()
+}
+
+func (pq *PreparedQuery) except2minus(searchUppercase bool) {
+	pos := 0
+	idx := -1
+	pos2 := 0
+	var qbuf bytes.Buffer
+
+	if searchUppercase {
+		idx = strings.Index(pq.Query[pos:], "EXCEPT")
+	} else {
+		idx = strings.Index(pq.Query[pos:], "except")
+	}
+
+	if idx < 0 {
+		return
+	}
+
+	for {
+		if idx < 0 {
+			qbuf.WriteString(pq.Query[pos:])
+			break
+		} else {
+			qbuf.WriteString(pq.Query[pos : pos+idx])
+			pos += idx + 1
+		}
+
+		pos2 = pos - len("except") - 1
+		if !IsWhiteSpace(pq.Query[pos:pos+1]) || !IsWhiteSpace(pq.Query[pos2:pos2+1]) {
+			qbuf.WriteString(pq.Query[pos2+1 : pos])
+		} else {
+			if searchUppercase {
+				qbuf.WriteString("MINUS")
+			} else {
+				qbuf.WriteString("minus")
+			}
+		}
+
+		if searchUppercase {
+			idx = strings.Index(pq.Query[pos:], "EXCEPT")
+		} else {
+			idx = strings.Index(pq.Query[pos:], "except")
 		}
 	}
 
