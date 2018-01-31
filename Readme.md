@@ -6,7 +6,7 @@ Allows you to use ? as parameter placeholder in: oracle 12.1, sql server 2017, p
 
 ## Examples
 
-For usage examples, look at: https://github.com/geo-stanciu/go-tryouts/tree/master/go-website
+For usage examples, look at: https://github.com/geo-stanciu/go-web-app
 
 ## License
 
