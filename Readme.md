@@ -1,4 +1,4 @@
-## Goals
+# Goals
 
 Provides easier acces to databases and logging to database.
 Tries to implement as much database abstraction as posible.
@@ -8,19 +8,43 @@ Allows you to use ? as parameter placeholder in: oracle 12.1, sql server 2017, p
 
 For usage examples, look at: https://github.com/geo-stanciu/go-web-app
 
+## Features
+
+- Prepared queries and parameters
+- Query parameter placeholders will be written as ? in all suported databses.
+- Some alterations to the query will be made:
+  - get dates as UTC
+  - in Postgresql
+    - changes params written as ? to $1, $2, etc
+  - in MySQL
+    - replaces quote identifiers with backticks
+  - in SQL Server
+    - replaces "LIMIT ? OFFSET ?" with "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"
+    - switches parameters set for OFFSET and LIMIT to reflect the changed query
+  - Limitations:
+    - LIMIT ? OFFSET ? must be the last 2 parameters in the query
+  - in Oracle
+  - changes params written as ? to :1, :2, etc
+- Provides an automatic sql column to struct field matcher
+  - SQLScan helper class for reading sql to Struct
+  Columns in struct must be marked with a `sql:"col_name"` tag
+  Ex: in sql a column name is col1, in struct the col tag must be `sql:"col1"`
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
 
 ## Download
-```
+
+```bash
 go get "github.com/geo-stanciu/go-utils/utils"
 go get "github.com/sirupsen/logrus"
 ```
 
-## Usage:
+## Usage
 
-### Declare as vars:
+### Declare as vars
+
 ```golang
 var (
     log                 = logrus.New()
@@ -30,7 +54,8 @@ var (
 )
 ```
 
-### initialize:
+### initialize
+
 ```golang
 func init() {
     // Log as JSON instead of the default ASCII formatter.
@@ -42,7 +67,7 @@ func init() {
 }
 ```
 
-### in main:
+### in main
 
 ```golang
 var err error
@@ -88,6 +113,7 @@ pq3 := dbUtils.PQuery("update table1 set col1 = ? where col2 = ?", val1, val2)
 ### Execute Queries
 
 Execute queries with one of:
+
 - dbUtils.**Exec** - for DML queries (insert, update, delete)
 - dbUtils.**ExecTx** - for DML queries (insert, update, delete)
          - tx is a transaction - type *sql.Tx
