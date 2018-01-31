@@ -59,7 +59,7 @@ defer db.Close()
 
 ```golang
 // setup logger
-audit.SetLogger("appname", log, &dbUtils)
+audit.SetLogger("appname", log, dbUtils)
 audit.SetWaitGroup(&wg)
 
 mw := io.MultiWriter(os.Stdout, audit)
@@ -228,7 +228,7 @@ var roles []MembershipRole
 var err error
 err = dbUtils.ForEachRow(pq, func(row *sql.Rows, sc *utils.SQLScan) error {
     r := new(MembershipRole)
-    err = sc.Scan(&dbUtils, row, r)
+    err = sc.Scan(dbUtils, row, r)
     if err != nil {
         return err
     }
