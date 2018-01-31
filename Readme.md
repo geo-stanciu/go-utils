@@ -68,8 +68,8 @@ log.Out = mw
 
 ### Have fun
 
-have fun using db, dbutils and logger
-declare each query as:
+Have fun using db, dbutils and logger.
+Declare each query as:
 
 ```golang
 pq := dbUtils.PQuery("select count(*) c1 from table1")
@@ -136,6 +136,7 @@ pq := dbUtils.PQuery(`
         WHERE role_id = ?
 `, roleID)
 
+r := new(MembershipRole)
 err := dbUtils.RunQuery(pq, r)
 
 switch {
@@ -160,6 +161,7 @@ pq := dbUtils.PQuery(`
         WHERE role_id = ?
 `, roleID)
 
+r := new(MembershipRole)
 err := dbUtils.RunQueryTx(tx, pq, r)
 
 switch {
@@ -225,8 +227,8 @@ type MembershipRole struct {
 var roles []MembershipRole
 var err error
 err = dbUtils.ForEachRow(pq, func(row *sql.Rows, sc *utils.SQLScan) error {
-    var r models.Rate
-    err = sc.Scan(&dbUtils, row, &r)
+    r := new(MembershipRole)
+    err = sc.Scan(&dbUtils, row, r)
     if err != nil {
         return err
     }
