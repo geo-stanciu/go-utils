@@ -86,6 +86,7 @@ defer db.Close()
 // setup logger
 audit.SetLogger("appname", log, dbUtils)
 audit.SetWaitGroup(&wg)
+defer audit.Close()
 
 mw := io.MultiWriter(os.Stdout, audit)
 log.Out = mw
