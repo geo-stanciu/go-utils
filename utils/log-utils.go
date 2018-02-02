@@ -10,17 +10,19 @@ import (
 )
 
 type logItem struct {
-	dt  time.Time
-	msg string
+	exitSignal bool
+	dt         time.Time
+	msg        string
 }
 
 // AuditLog - Audit log helper
 type AuditLog struct {
-	log       *logrus.Logger
-	logSource string
-	dbUtils   *DbUtils
-	queue     chan logItem
-	wg        *sync.WaitGroup
+	log        *logrus.Logger
+	logSource  string
+	dbUtils    *DbUtils
+	queue      chan logItem
+	wg         *sync.WaitGroup
+	exitSignal bool
 }
 
 // SetWaitGroup - SetWaitGroup
@@ -33,32 +35,67 @@ func (a *AuditLog) SetLogger(logSource string, log *logrus.Logger, dbUtils *DbUt
 	a.log = log
 	a.logSource = logSource
 	a.dbUtils = dbUtils
-	a.queue = make(chan logItem, 128)
+	a.queue = make(chan logItem, 1024)
+
+	go a.processQueue()
+	go a.processQueue()
+	go a.processQueue()
+	go a.processQueue()
+}
+
+// Close - send signal to close operations
+func (a *AuditLog) Close() {
+	if a.exitSignal {
+		return
+	}
+
+	a.exitSignal = true
+
+	li := logItem{
+		exitSignal: true,
+		dt:         time.Now().UTC(),
+		msg:        "exit",
+	}
+
+	a.queue <- li
+	a.queue <- li
+	a.queue <- li
+	a.queue <- li
 }
 
 func (a *AuditLog) processQueue() {
-	if a.wg != nil {
-		defer a.wg.Done()
-	}
+	for {
+		li := <-a.queue
 
-	li := <-a.queue
+		if li.exitSignal {
+			break
+		}
 
-	pq := a.dbUtils.PQuery(`
-		INSERT INTO audit_log (
-			log_time, log_source, audit_msg
-		)
-		VALUES (?, ?, ?)
-	`, li.dt,
-		a.logSource,
-		li.msg)
+		pq := a.dbUtils.PQuery(`
+			INSERT INTO audit_log (
+				log_time, log_source, audit_msg
+			)
+			VALUES (?, ?, ?)
+		`, li.dt,
+			a.logSource,
+			li.msg)
 
-	_, err := a.dbUtils.Exec(pq)
-	if err != nil {
-		fmt.Println("log error: ", err)
+		_, err := a.dbUtils.Exec(pq)
+		if err != nil {
+			fmt.Println("log error: ", err)
+		}
+
+		if a.wg != nil {
+			a.wg.Done()
+		}
 	}
 }
 
 func (a AuditLog) Write(p []byte) (n int, err error) {
+	if a.exitSignal {
+		return 0, fmt.Errorf("exit signal already received")
+	}
+
 	if a.wg != nil {
 		a.wg.Add(1)
 	}
@@ -69,8 +106,6 @@ func (a AuditLog) Write(p []byte) (n int, err error) {
 	}
 
 	a.queue <- li
-
-	go a.processQueue()
 
 	return len(p), nil
 }
