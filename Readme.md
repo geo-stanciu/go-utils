@@ -49,7 +49,7 @@ go get "github.com/sirupsen/logrus"
 var (
     log                 = logrus.New()
     audit               = utils.AuditLog{}
-    dbUtils             *utils.DbUtils{}
+    dbutl               *utils.DbUtils{}
     db                  *sql.DB
 )
 ```
@@ -63,7 +63,7 @@ func init() {
     log.Level = logrus.DebugLevel
 
     // init databaseutils
-    dbUtils = new(utils.DbUtils)
+    dbutl = new(utils.DbUtils)
 }
 ```
 
@@ -74,7 +74,7 @@ var err error
 var wg sync.WaitGroup
 
 // connect to the database:
-err = dbUtils.Connect2Database(&db, "dbtype", "dburl")
+err = dbutl.Connect2Database(&db, "dbtype", "dburl")
 if err != nil {
     log.Println(err)
     return
@@ -84,7 +84,7 @@ defer db.Close()
 
 ```golang
 // setup logger
-audit.SetLogger("appname", log, dbUtils)
+audit.SetLogger("appname", log, dbutl)
 audit.SetWaitGroup(&wg)
 defer audit.Close()
 
@@ -94,13 +94,13 @@ log.Out = mw
 
 ### Have fun
 
-Have fun using db, dbutils and logger.
+Have fun using db, dbutl and logger.
 Declare each query as:
 
 ```golang
-pq := dbUtils.PQuery("select count(*) c1 from table1")
+pq := dbutl.PQuery("select count(*) c1 from table1")
 
-pq2 := dbUtils.PQuery(`
+pq2 := dbutl.PQuery(`
     select col1
       from table1
      where col2 = ?
@@ -108,30 +108,30 @@ pq2 := dbUtils.PQuery(`
 `, val2,
    val3)
 
-pq3 := dbUtils.PQuery("update table1 set col1 = ? where col2 = ?", val1, val2)
+pq3 := dbutl.PQuery("update table1 set col1 = ? where col2 = ?", val1, val2)
 ```
 
 ### Execute Queries
 
 Execute queries with one of:
 
-- dbUtils.**Exec** - for DML queries (insert, update, delete)
-- dbUtils.**ExecTx** - for DML queries (insert, update, delete)
+- dbutl.**Exec** - for DML queries (insert, update, delete)
+- dbutl.**ExecTx** - for DML queries (insert, update, delete)
          - tx is a transaction - type *sql.Tx
-- dbUtils.**RunQuery** - for single row queries
-- dbUtils.**RunQueryTx** - for single row queries
+- dbutl.**RunQuery** - for single row queries
+- dbutl.**RunQueryTx** - for single row queries
              - tx is a transaction - type *sql.Tx
-- dbUtils.**ForEachRow**,
-- dbUtils.**ForEachRowTx** (where tx is a transaction - type *sql.Tx)
+- dbutl.**ForEachRow**,
+- dbutl.**ForEachRowTx** (where tx is a transaction - type *sql.Tx)
 - or standard **Exec**, **Query** and **QueryRow** methods of the database/sql package
 
 ```golang
 var err error
-pq := dbUtils.PQuery(`
+pq := dbutl.PQuery(`
     INSERT INTO role (role) VALUES (?)
 `, r.Rolename)
 
-_, err = dbUtils.Exec(pq)
+_, err = dbutl.Exec(pq)
 if err != nil {
     return err
 }
@@ -139,11 +139,11 @@ if err != nil {
 
 ```golang
 var err error
-pq := dbUtils.PQuery(`
+pq := dbutl.PQuery(`
     INSERT INTO role (role) VALUES (?)
 `, r.Rolename)
 
-_, err = dbUtils.ExecTx(tx, pq)
+_, err = dbutl.ExecTx(tx, pq)
 if err != nil {
     return err
 }
@@ -156,7 +156,7 @@ type MembershipRole struct {
 }
 
 var err error
-pq := dbUtils.PQuery(`
+pq := dbutl.PQuery(`
     SELECT role_id,
             role
         FROM role
@@ -164,7 +164,7 @@ pq := dbUtils.PQuery(`
 `, roleID)
 
 r := new(MembershipRole)
-err := dbUtils.RunQuery(pq, r)
+err := dbutl.RunQuery(pq, r)
 
 switch {
 case err == sql.ErrNoRows:
@@ -181,7 +181,7 @@ type MembershipRole struct {
 }
 
 var err error
-pq := dbUtils.PQuery(`
+pq := dbutl.PQuery(`
     SELECT role_id,
             role
         FROM role
@@ -189,7 +189,7 @@ pq := dbUtils.PQuery(`
 `, roleID)
 
 r := new(MembershipRole)
-err := dbUtils.RunQueryTx(tx, pq, r)
+err := dbutl.RunQueryTx(tx, pq, r)
 
 switch {
 case err == sql.ErrNoRows:
@@ -207,7 +207,7 @@ type MembershipRole struct {
 
 var roles []MembershipRole
 var err error
-err = dbUtils.ForEachRow(pq, func(row *sql.Rows, sc *utils.SQLScan) {
+err = dbutl.ForEachRow(pq, func(row *sql.Rows, sc *utils.SQLScan) {
     var r MembershipRole
     err = row.Scan(&r.RoleID, &r.Rolename)
     if err != nil {
@@ -227,7 +227,7 @@ type MembershipRole struct {
 
 var roles []MembershipRole
 var err error
-err = dbUtils.ForEachRowTx(tx, pq, func(row *sql.Rows, sc *utils.SQLScan) error {
+err = dbutl.ForEachRowTx(tx, pq, func(row *sql.Rows, sc *utils.SQLScan) error {
     var r MembershipRole
     err = row.Scan(&r.RoleID, &r.Rolename)
     if err != nil {
@@ -253,9 +253,9 @@ type MembershipRole struct {
 
 var roles []MembershipRole
 var err error
-err = dbUtils.ForEachRow(pq, func(row *sql.Rows, sc *utils.SQLScan) error {
+err = dbutl.ForEachRow(pq, func(row *sql.Rows, sc *utils.SQLScan) error {
     r := new(MembershipRole)
-    err = sc.Scan(dbUtils, row, r)
+    err = sc.Scan(dbutl, row, r)
     if err != nil {
         return err
     }
@@ -270,7 +270,7 @@ err = dbUtils.ForEachRow(pq, func(row *sql.Rows, sc *utils.SQLScan) error {
 ```golang
 var roleID int
 
-pq = dbUtils.PQuery(`
+pq = dbutl.PQuery(`
     SELECT role_id FROM role WHERE lower(role) = lower(?)
 `, r.Rolename)
 
@@ -285,7 +285,7 @@ case err != nil:
 ```
 
 ```golang
-pq = dbUtils.PQuery("select id, name from foo")
+pq = dbutl.PQuery("select id, name from foo")
 
 rows, err := db.Query(pq.Query, pq.Args...)
 if err != nil {

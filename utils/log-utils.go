@@ -19,7 +19,7 @@ type logItem struct {
 type AuditLog struct {
 	log        *logrus.Logger
 	logSource  string
-	dbUtils    *DbUtils
+	dbutl      *DbUtils
 	queue      chan logItem
 	wg         *sync.WaitGroup
 	exitSignal bool
@@ -31,10 +31,10 @@ func (a *AuditLog) SetWaitGroup(wg *sync.WaitGroup) {
 }
 
 // SetLogger - SetLogger
-func (a *AuditLog) SetLogger(logSource string, log *logrus.Logger, dbUtils *DbUtils) {
+func (a *AuditLog) SetLogger(logSource string, log *logrus.Logger, dbutl *DbUtils) {
 	a.log = log
 	a.logSource = logSource
-	a.dbUtils = dbUtils
+	a.dbutl = dbutl
 	a.queue = make(chan logItem, 1024)
 
 	go a.processQueue()
@@ -71,7 +71,7 @@ func (a *AuditLog) processQueue() {
 			break
 		}
 
-		pq := a.dbUtils.PQuery(`
+		pq := a.dbutl.PQuery(`
 			INSERT INTO audit_log (
 				log_time, log_source, audit_msg
 			)
@@ -80,7 +80,7 @@ func (a *AuditLog) processQueue() {
 			a.logSource,
 			li.msg)
 
-		_, err := a.dbUtils.Exec(pq)
+		_, err := a.dbutl.Exec(pq)
 		if err != nil {
 			fmt.Println("log error: ", err)
 		}
