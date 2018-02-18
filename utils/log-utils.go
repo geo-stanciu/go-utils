@@ -88,6 +88,8 @@ func (a *AuditLog) processQueue() {
 		if a.wg != nil {
 			a.wg.Done()
 		}
+
+		time.Sleep(2 * time.Millisecond)
 	}
 }
 
