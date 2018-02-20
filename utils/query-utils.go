@@ -172,6 +172,7 @@ func (pq *PreparedQuery) replaceParamPlaceHolders() {
 	pos := 0
 	idx := -1
 	var qbuf bytes.Buffer
+	l := len(pq.Query)
 
 	idx = strings.Index(pq.Query[pos:], "?")
 	if idx < 0 || len(pq.ParamPrefix) == 0 {
@@ -187,10 +188,15 @@ func (pq *PreparedQuery) replaceParamPlaceHolders() {
 			pos += idx + 1
 		}
 
-		prm := fmt.Sprintf("%s%d", pq.ParamPrefix, i)
-		i++
+		if pos < l-1 && pq.Query[pos:pos+1] == "?" {
+			qbuf.WriteString("?")
+			pos++
+		} else {
+			prm := fmt.Sprintf("%s%d", pq.ParamPrefix, i)
+			qbuf.WriteString(prm)
+			i++
+		}
 
-		qbuf.WriteString(prm)
 		idx = strings.Index(pq.Query[pos:], "?")
 	}
 

@@ -4,6 +4,8 @@ Provides easier acces to databases and logging to database.
 Tries to implement as much database abstraction as posible.
 Allows you to use ? as parameter placeholder in: oracle 12.1, sql server 2017, postgresql, mariadb and mysql.
 
+If you need to write the character ? in a query (such as testing if a key exists in a postgresql jsonb column) you must write it as ??
+
 ## Examples
 
 For usage examples, look at: https://github.com/geo-stanciu/go-web-app
