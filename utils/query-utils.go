@@ -42,11 +42,14 @@ func (pq *PreparedQuery) SetArg(i int, val interface{}) {
 		n = len(pq.Args)
 	}
 
+	fmt.Println(n, target, i, pq.Args)
+
 	if n < i || n == 0 {
 		for k := n; k < target; k++ {
 			pq.Args = append(pq.Args, nil)
 		}
 	}
+	fmt.Println(n, target, i, pq.Args)
 
 	pq.Args[i] = val
 }
