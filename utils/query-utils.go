@@ -44,7 +44,7 @@ func (pq *PreparedQuery) SetArg(i int, val interface{}) {
 
 	fmt.Println(n, target, i, pq.Args)
 
-	if n < i || n == 0 {
+	if n < target {
 		for k := n; k < target; k++ {
 			pq.Args = append(pq.Args, nil)
 		}
