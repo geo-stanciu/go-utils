@@ -37,16 +37,15 @@ func (pq *PreparedQuery) SetArg(i int, val interface{}) {
 	}
 
 	n := 0
+	target := i + 1
 	if pq.Args != nil {
 		n = len(pq.Args)
 	}
 
-	if n < i {
-		for k := 0; k < n; k++ {
+	if n < i || n == 0 {
+		for k := n; k < target; k++ {
 			pq.Args = append(pq.Args, nil)
 		}
-	} else if n == 0 {
-		pq.Args = append(pq.Args, nil)
 	}
 
 	pq.Args[i] = val
