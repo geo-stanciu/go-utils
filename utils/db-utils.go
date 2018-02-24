@@ -5,7 +5,6 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
-	"reflect"
 	"strings"
 	"time"
 )
@@ -270,7 +269,7 @@ func (u *DbUtils) ForEachRowTx(tx *sql.Tx, pq *PreparedQuery, callback DBRowCall
 }
 
 // GetAllRows - Get all rows
-func (u *DbUtils) GetAllRows(pq *PreparedQuery, dest interface{}) error {
+/*func (u *DbUtils) GetAllRows(pq *PreparedQuery, dest interface{}) error {
 	if dest == nil {
 		return errors.New("destination must be not null")
 	}
@@ -322,3 +321,4 @@ func (u *DbUtils) GetAllRows(pq *PreparedQuery, dest interface{}) error {
 
 	return nil
 }
+*/
