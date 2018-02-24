@@ -5,6 +5,7 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 	"time"
 )
@@ -261,6 +262,60 @@ func (u *DbUtils) ForEachRowTx(tx *sql.Tx, pq *PreparedQuery, callback DBRowCall
 	}
 
 	err = rows.Err()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// GetAllRows - Get all rows
+func (u *DbUtils) GetAllRows(pq *PreparedQuery, dest interface{}) error {
+	if dest == nil {
+		return errors.New("destination must be not null")
+	}
+
+	destination := reflect.ValueOf(dest)
+
+	if destination.Kind() != reflect.Slice {
+		return errors.New("destination must be an array")
+	}
+
+	if destination.IsNil() {
+		return errors.New("destination array must be initialised")
+	}
+
+	dslice := reflect.Indirect(destination)
+	destType := reflect.TypeOf(dest).Elem()
+	destKind := destType.Kind()
+	isPtr := destKind == reflect.Ptr
+	var baseType reflect.Type
+
+	if isPtr {
+		baseType = destType.Elem()
+	} else {
+		baseType = destType
+	}
+
+	var err error
+	err = u.ForEachRow(pq, func(row *sql.Rows, sc *SQLScan) error {
+		destValPtr := reflect.New(baseType)
+		val := reflect.Indirect(destValPtr)
+
+		err = sc.Scan(u, row, val)
+		if err != nil {
+			return err
+		}
+
+		if isPtr {
+			dslice.Set(reflect.Append(dslice, destValPtr))
+		} else {
+			dslice.Set(reflect.Append(dslice, val))
+		}
+
+		return nil
+	})
+
 	if err != nil {
 		return err
 	}
