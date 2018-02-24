@@ -300,8 +300,9 @@ func (u *DbUtils) GetAllRows(pq *PreparedQuery, dest interface{}) error {
 	var err error
 	err = u.ForEachRow(pq, func(row *sql.Rows, sc *SQLScan) error {
 		destValPtr := reflect.New(baseType)
+		val := reflect.Indirect(destValPtr)
 
-		err = sc.Scan(u, row, destValPtr)
+		err = sc.Scan(u, row, val.Interface())
 		if err != nil {
 			return err
 		}
@@ -309,7 +310,6 @@ func (u *DbUtils) GetAllRows(pq *PreparedQuery, dest interface{}) error {
 		if isPtr {
 			dslice.Set(reflect.Append(dslice, destValPtr))
 		} else {
-			val := reflect.Indirect(destValPtr)
 			dslice.Set(reflect.Append(dslice, val))
 		}
 
