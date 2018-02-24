@@ -302,7 +302,7 @@ func (u *DbUtils) GetAllRows(pq *PreparedQuery, dest interface{}) error {
 		destValPtr := reflect.New(baseType)
 		val := reflect.Indirect(destValPtr)
 
-		err = sc.Scan(u, row, val)
+		err = sc.Scan(u, row, &val)
 		if err != nil {
 			return err
 		}
