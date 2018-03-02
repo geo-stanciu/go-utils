@@ -21,6 +21,8 @@ const (
 	DMY string = "02/01/2006"
 	// DMYTime - dd/MM/yyyy HH:m:ss
 	DMYTime string = "02/01/2006 15:04:05"
+	// UTCDate - date at midnight UTC
+	UTCDate string = "UTCDate"
 	// UTCDateTime - ISODateTime at UTC
 	UTCDateTime string = "UTC"
 	// UTCDateTimestamp - ISODateTimestamp at UTC
@@ -61,6 +63,8 @@ func Date2string(val time.Time, format string) string {
 	switch format {
 	case ISODate, ISODateTime, ISODateTimestamp, ISODateTimeZ, ISODateTimestampZ, DMY, DMYTime:
 		return val.Format(format)
+	case UTCDate:
+		return val.UTC().Format(ISODate)
 	case UTCDateTime:
 		return val.UTC().Format(ISODateTimeZ)
 	case UTCDateTimestamp:
@@ -90,6 +94,17 @@ func String2date(sval string, format string) (time.Time, error) {
 		}
 
 		t, err := time.ParseInLocation(format, sval, loc)
+		if err != nil {
+			return time.Now(), err
+		}
+		return t, nil
+	case UTCDate:
+		loc, err := time.LoadLocation("UTC")
+		if err != nil {
+			return time.Now(), err
+		}
+
+		t, err := time.ParseInLocation(ISODate, sval, loc)
 		if err != nil {
 			return time.Now(), err
 		}
