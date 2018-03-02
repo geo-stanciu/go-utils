@@ -29,6 +29,8 @@ const (
 	UTCDateTimestamp string = "UTCTimestamp"
 	// DateOffset - time zone offset
 	DateOffset string = "Z07:00"
+	// RSSDateTime - rss date time format
+	RSSDateTime string = "Mon, 02 Ian 2006 15:04:05 MST"
 )
 
 // IsISODate - checks if is in iso date format
@@ -69,6 +71,8 @@ func Date2string(val time.Time, format string) string {
 		return val.UTC().Format(ISODateTimeZ)
 	case UTCDateTimestamp:
 		return val.UTC().Format(ISODateTimestampZ)
+	case RSSDateTime:
+		return val.UTC().Format(RSSDateTime)
 	default:
 		return ""
 	}
@@ -127,6 +131,17 @@ func String2date(sval string, format string) (time.Time, error) {
 		}
 
 		t, err := time.ParseInLocation(ISODateTimestamp, sval, loc)
+		if err != nil {
+			return time.Now(), err
+		}
+		return t, nil
+	case RSSDateTime:
+		loc, err := time.LoadLocation("UTC")
+		if err != nil {
+			return time.Now(), err
+		}
+
+		t, err := time.ParseInLocation(RSSDateTime, sval, loc)
 		if err != nil {
 			return time.Now(), err
 		}
