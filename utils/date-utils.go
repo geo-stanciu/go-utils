@@ -30,7 +30,7 @@ const (
 	// DateOffset - time zone offset
 	DateOffset string = "Z07:00"
 	// RSSDateTime - rss date time format
-	RSSDateTime string = "Mon, 02 Ian 2006 15:04:05 MST"
+	RSSDateTime string = "Mon, 02 Jan 2006 15:04:05 MST"
 )
 
 // IsISODate - checks if is in iso date format
