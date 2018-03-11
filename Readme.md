@@ -86,7 +86,7 @@ defer db.Close()
 
 ```golang
 // setup logger
-audit.SetLogger("appname", log, dbutl)
+audit.SetLogger("appname", "appversion", log, dbutl)
 audit.SetWaitGroup(&wg)
 defer audit.Close()
 
