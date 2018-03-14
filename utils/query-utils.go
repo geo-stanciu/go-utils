@@ -131,8 +131,8 @@ func (pq *PreparedQuery) modifyQuery4MSSQL() {
 func (pq *PreparedQuery) modifyQuery4Oracle12c() {
 	q := pq.Query
 
-	q = strings.Replace(q, "now()", "sys_extract_utc(systimestamp)", -1)
 	q = strings.Replace(q, "systimestamp", "sys_extract_utc(systimestamp)", -1)
+	q = strings.Replace(q, "now()", "sys_extract_utc(systimestamp)", -1)
 	q = strings.Replace(q, "sysdate", "sys_extract_utc(systimestamp)", -1)
 	q = strings.Replace(q, "current_timestamp", "sys_extract_utc(systimestamp)", -1)
 	q = strings.Replace(q, "DATE ?", "to_date(?, 'yyyy-mm-dd')", -1)
@@ -150,8 +150,8 @@ func (pq *PreparedQuery) modifyQuery4Oracle12c() {
 func (pq *PreparedQuery) modifyQuery4Oracle11g() {
 	q := pq.Query
 
-	q = strings.Replace(q, "now()", "sys_extract_utc(systimestamp)", -1)
 	q = strings.Replace(q, "systimestamp", "sys_extract_utc(systimestamp)", -1)
+	q = strings.Replace(q, "now()", "sys_extract_utc(systimestamp)", -1)
 	q = strings.Replace(q, "sysdate", "sys_extract_utc(systimestamp)", -1)
 	q = strings.Replace(q, "current_timestamp", "sys_extract_utc(systimestamp)", -1)
 	q = strings.Replace(q, "DATE ?", "to_date(?, 'yyyy-mm-dd')", -1)
