@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"time"
 )
 
 // SQLScan helper class for reading sql to Struct
@@ -71,7 +72,7 @@ func (s *SQLScan) Scan(u *DbUtils, rows *sql.Rows, dest interface{}) error {
 		return err
 	}
 
-	/*if u.dbType == Oci8 || u.dbType == Oracle || u.dbType == Oracle11g {
+	if u.dbType == Oci8 || u.dbType == Oracle || u.dbType == Oracle11g {
 		// in oci, the timestamp is comming up as local time zone
 		// even if you ask for the UTC
 		dt := time.Now()
@@ -92,7 +93,7 @@ func (s *SQLScan) Scan(u *DbUtils, rows *sql.Rows, dest interface{}) error {
 				}
 			}
 		}
-	}*/
+	}
 
 	return nil
 }
