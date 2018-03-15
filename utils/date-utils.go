@@ -30,9 +30,17 @@ const (
 	// DateOffset - time zone offset
 	DateOffset string = "Z07:00"
 	// RSSDateTime - rss date time format
-	RSSDateTime string = "Mon, _2 Jan 2006 15:04:05 Z07:00"
+	RSSDateTime string = "Mon, 02 Jan 2006 15:04:05 Z07:00"
+	// RSSDateTime1 - rss date time format
+	RSSDateTime1 string = "Mon, _2 Jan 2006 15:04:05 Z07:00"
+	// RSSDateTime2 - rss date time format 2
+	RSSDateTime2 string = "Mon, 02 Jan 2006 15:04:05 Z0700"
+	// RSSDateTime3 - rss date time format 2
+	RSSDateTime3 string = "Mon, _2 Jan 2006 15:04:05 Z0700"
 	// RSSDateTimeTZ - rss date time format with named timezone
-	RSSDateTimeTZ string = "Mon, _2 Jan 2006 15:04:05 MST"
+	RSSDateTimeTZ string = "Mon, 02 Jan 2006 15:04:05 MST"
+	// RSSDateTimeTZ1 - rss date time format with named timezone
+	RSSDateTimeTZ1 string = "Mon, _2 Jan 2006 15:04:05 MST"
 )
 
 // IsISODate - checks if is in iso date format
@@ -192,4 +200,28 @@ func Server2ClientLocal(r *http.Request, serverTime time.Time) time.Time {
 	}
 
 	return serverTime.UTC().Add(time.Duration(-1*timeOffset) * time.Minute)
+}
+
+// ParseRSSDate - try to parse RSS date in multiple formats
+func ParseRSSDate(sdate string) (time.Time, error) {
+	var err error
+	var dt time.Time
+
+	formats := []string{
+		RSSDateTimeTZ,
+		RSSDateTimeTZ1,
+		RSSDateTime,
+		RSSDateTime1,
+		RSSDateTime2,
+		RSSDateTime3,
+	}
+
+	for _, format := range formats {
+		dt, err = String2date(sdate, format)
+		if err == nil {
+			break
+		}
+	}
+
+	return dt.UTC(), err
 }
