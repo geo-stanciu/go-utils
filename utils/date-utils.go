@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 )
@@ -31,15 +30,15 @@ const (
 	DateOffset string = "Z07:00"
 	// RSSDateTime - rss date time format
 	RSSDateTime string = "Mon, 02 Jan 2006 15:04:05 Z07:00"
-	// RSSDateTime1 - rss date time format
+	// RSSDateTime1 - rss date time format 1
 	RSSDateTime1 string = "Mon, _2 Jan 2006 15:04:05 Z07:00"
 	// RSSDateTime2 - rss date time format 2
 	RSSDateTime2 string = "Mon, 02 Jan 2006 15:04:05 Z0700"
-	// RSSDateTime3 - rss date time format 2
+	// RSSDateTime3 - rss date time format 3
 	RSSDateTime3 string = "Mon, _2 Jan 2006 15:04:05 Z0700"
 	// RSSDateTimeTZ - rss date time format with named timezone
 	RSSDateTimeTZ string = "Mon, 02 Jan 2006 15:04:05 MST"
-	// RSSDateTimeTZ1 - rss date time format with named timezone
+	// RSSDateTimeTZ1 - rss date time format with named timezone 1
 	RSSDateTimeTZ1 string = "Mon, _2 Jan 2006 15:04:05 MST"
 )
 
@@ -73,22 +72,15 @@ func DateFromISODateTime(sval string) (time.Time, error) {
 // Date2string - Date to string
 func Date2string(val time.Time, format string) string {
 	switch format {
-	case ISODate, ISODateTime, ISODateTimestamp, ISODateTimeZ, ISODateTimestampZ, DMY, DMYTime:
-		return val.Format(format)
 	case UTCDate:
 		return val.UTC().Format(ISODate)
 	case UTCDateTime:
 		return val.UTC().Format(ISODateTimeZ)
 	case UTCDateTimestamp:
 		return val.UTC().Format(ISODateTimestampZ)
-	case RSSDateTime:
-		return val.UTC().Format(RSSDateTime)
-	case RSSDateTimeTZ:
-		return val.Format(RSSDateTimeTZ)
 	default:
-		return ""
+		return val.Format(format)
 	}
-
 }
 
 // String2dateNoErr - String to date NoErrCheck
@@ -147,30 +139,17 @@ func String2date(sval string, format string) (time.Time, error) {
 			return time.Now(), err
 		}
 		return t, nil
-	case RSSDateTime:
-		loc, err := time.LoadLocation("UTC")
-		if err != nil {
-			return time.Now(), err
-		}
-
-		t, err := time.ParseInLocation(RSSDateTime, sval, loc)
-		if err != nil {
-			return time.Now(), err
-		}
-		return t, nil
-	case RSSDateTimeTZ:
-		loc, err := time.LoadLocation("UTC")
-		if err != nil {
-			return time.Now(), err
-		}
-
-		t, err := time.ParseInLocation(RSSDateTimeTZ, sval, loc)
-		if err != nil {
-			return time.Now(), err
-		}
-		return t, nil
 	default:
-		return time.Now(), fmt.Errorf("Unknown datetime format \"%s\"", format)
+		loc, err := time.LoadLocation("UTC")
+		if err != nil {
+			return time.Now(), err
+		}
+
+		t, err := time.ParseInLocation(format, sval, loc)
+		if err != nil {
+			return time.Now(), err
+		}
+		return t, nil
 	}
 }
 
