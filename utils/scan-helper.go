@@ -2,6 +2,7 @@ package utils
 
 import (
 	"database/sql"
+	"fmt"
 	"reflect"
 	"strings"
 	"sync"
@@ -58,6 +59,9 @@ func (s *SQLScan) Scan(u *DbUtils, rows *sql.Rows, dest interface{}) error {
 
 	for i, colName := range s.columnNames {
 		if u.dbType == Oracle && colName == "rnumignore" {
+			fmt.Println(i)
+			fmt.Println(len(pointers[:i]))
+			fmt.Println(len(pointers[i+1:]))
 			pointers = append(pointers[:i], &rnum, pointers[i+1:])
 			continue
 		}
