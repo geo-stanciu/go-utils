@@ -55,6 +55,12 @@ func (s *SQLScan) Scan(u *DbUtils, rows *sql.Rows, dest interface{}) error {
 	nFields := structVal.NumField()
 
 	for i, colName := range s.columnNames {
+		if u.dbType == Oracle && colName == "rnumignore" {
+			rnum := 0
+			pointers = append(pointers, &rnum)
+			continue
+		}
+
 		for j := 0; j < nFields; j++ {
 			typeField := structVal.Type().Field(j)
 			tag := typeField.Tag

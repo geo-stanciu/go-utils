@@ -403,9 +403,9 @@ func (pq *PreparedQuery) oracle11gLimitAndOffset() {
 
 		if idx2 > -1 {
 			pq.Query = fmt.Sprintf(`
-				SELECT * FROM (SELECT rownum rnum, a.* FROM (
+				SELECT * FROM (SELECT rownum rnumignore, a.* FROM (
 					%s
-				) a WHERE rownum <= ?) WHERE rnum > ?
+				) a WHERE rownum <= ?) WHERE rnumignore > ?
 			`, q1)
 
 			if pq.Args != nil {
@@ -418,7 +418,7 @@ func (pq *PreparedQuery) oracle11gLimitAndOffset() {
 			}
 		} else {
 			pq.Query = fmt.Sprintf(`
-				SELECT * FROM (SELECT rownum rnum, a.* FROM (
+				SELECT * FROM (SELECT rownum rnumignore, a.* FROM (
 					%s
 				) a WHERE rownum <= ?)
 			`, q1)
@@ -427,9 +427,9 @@ func (pq *PreparedQuery) oracle11gLimitAndOffset() {
 		q1 := strings.TrimSpace(pq.Query[:idx2])
 
 		pq.Query = fmt.Sprintf(`
-			SELECT * FROM (SELECT rownum rnum, a.* FROM (
+			SELECT * FROM (SELECT rownum rnumignore, a.* FROM (
 				%s
-			) a) WHERE rnum > ?
+			) a) WHERE rnumignore > ?
 		`, q1)
 
 		if pq.Args != nil {
