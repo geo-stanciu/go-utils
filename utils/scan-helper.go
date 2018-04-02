@@ -2,7 +2,6 @@ package utils
 
 import (
 	"database/sql"
-	"fmt"
 	"reflect"
 	"strings"
 	"sync"
@@ -59,20 +58,13 @@ func (s *SQLScan) Scan(u *DbUtils, rows *sql.Rows, dest interface{}) error {
 	rnumPos := -1
 
 	for i, colName := range s.columnNames {
-		if u.dbType == Oracle && colName == "rnumignore" {
+		if u.dbType == Oracle11g && colName == "rnumignore" {
 			rnumPos = i
-			pointersAux := make([]interface{}, nrCols+1)
 
-			for k := 0; k < i; k++ {
-				pointersAux[k] = pointers[k]
-			}
-
-			pointersAux[i] = &rnum
-
-			for k := i; k < nrCols; k++ {
-				pointersAux[k+1] = pointers[k]
-			}
-
+			var pointersAux []interface{}
+			pointersAux = append(pointersAux, pointers[:i]...)
+			pointersAux = append(pointersAux, &rnum)
+			pointersAux = append(pointersAux, pointers[i:]...)
 			pointers = pointersAux
 
 			continue
@@ -89,8 +81,6 @@ func (s *SQLScan) Scan(u *DbUtils, rows *sql.Rows, dest interface{}) error {
 			}
 		}
 	}
-
-	fmt.Println("pointers", pointers)
 
 	err := rows.Scan(pointers...)
 	if err != nil {
