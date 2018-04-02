@@ -402,25 +402,36 @@ func (pq *PreparedQuery) oracle11gLimitAndOffset() {
 		q1 := strings.TrimSpace(pq.Query[:idx1])
 
 		if idx2 > -1 {
-			pq.Query = fmt.Sprintf("SELECT * FROM (\n%s)\nWHERE rownum BETWEEN ? AND ?", q1)
+			pq.Query = fmt.Sprintf(`
+				SELECT * FROM (SELECT rownum rnum, a.* FROM (
+					%s
+				) a WHERE rownum <= ?) WHERE rnum > ?
+			`, q1)
 
 			if pq.Args != nil {
 				n := len(pq.Args)
 				if n >= 2 {
-					pq.Args = append(pq.Args[:n-2], pq.Args[n-1], pq.Args[n-2])
-					offset := pq.Args[n-2].(int)
-					nrRows := pq.Args[n-1].(int)
-					pq.Args[n-2] = offset + 1
-					pq.Args[n-1] = offset + nrRows
+					offset := pq.Args[n-1].(int)
+					nrRows := pq.Args[n-2].(int)
+					pq.Args[n-1] = offset + 1
+					pq.Args[n-2] = offset + nrRows
 				}
 			}
 		} else {
-			pq.Query = fmt.Sprintf("SELECT * FROM (\n%s)\nWHERE rownum BETWEEN 0 AND ?", q1)
+			pq.Query = fmt.Sprintf(`
+				SELECT * FROM (SELECT rownum rnum, a.* FROM (
+					%s
+				) a WHERE rownum <= ?)
+			`, q1)
 		}
 	} else if idx2 > -1 {
 		q1 := strings.TrimSpace(pq.Query[:idx2])
 
-		pq.Query = fmt.Sprintf("SELECT * FROM (\n%s)\nWHERE rownum >= ?", q1)
+		pq.Query = fmt.Sprintf(`
+			SELECT * FROM (SELECT rownum rnum, a.* FROM (
+				%s
+			) a) WHERE rnum > ?
+		`, q1)
 
 		if pq.Args != nil {
 			n := len(pq.Args)
