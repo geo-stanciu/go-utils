@@ -62,7 +62,7 @@ func (s *SQLScan) Scan(u *DbUtils, rows *sql.Rows, dest interface{}) error {
 			rnumPos = i
 			var pointersAux []interface{}
 			pointersAux = append(pointersAux, pointers[:i]...)
-			pointersAux = append(pointersAux, &rnum)
+			pointersAux = append(pointersAux, reflect.ValueOf(rnum).Addr().Interface())
 			pointersAux = append(pointersAux, pointers[i:]...)
 			pointers = pointersAux
 			continue
