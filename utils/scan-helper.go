@@ -55,18 +55,11 @@ func (s *SQLScan) Scan(u *DbUtils, rows *sql.Rows, dest interface{}) error {
 	nFields := structVal.NumField()
 
 	rnum := 0
-	rnumPos := -1
 
 	for i, colName := range s.columnNames {
 		if u.dbType == Oracle11g && colName == "rnumignore" {
-			rnumPos = i
-
-			var pointersAux []interface{}
-			pointersAux = append(pointersAux, pointers[:i]...)
-			pointersAux = append(pointersAux, &rnum)
-			pointersAux = append(pointersAux, pointers[i:]...)
-			pointers = pointersAux
-
+			pointers[i] = &rnum
+			fieldTypes[i] = reflect.ValueOf(rnum).Type()
 			continue
 		}
 
@@ -97,28 +90,14 @@ func (s *SQLScan) Scan(u *DbUtils, rows *sql.Rows, dest interface{}) error {
 
 		for i := 0; i < nrCols; i++ {
 			if fieldTypes[i] == dtType {
-				if rnumPos < 0 {
-					dtval := pointers[i].(*time.Time)
-					strdt := Date2string(*dtval, ISODateTimestamp)
-					*dtval = String2dateNoErr(strdt, UTCDateTimestamp)
-				} else if i >= rnumPos {
-					dtval := pointers[i+1].(*time.Time)
-					strdt := Date2string(*dtval, ISODateTimestamp)
-					*dtval = String2dateNoErr(strdt, UTCDateTimestamp)
-				}
+				dtval := pointers[i].(*time.Time)
+				strdt := Date2string(*dtval, ISODateTimestamp)
+				*dtval = String2dateNoErr(strdt, UTCDateTimestamp)
 			} else if fieldTypes[i] == dtnullType {
-				if rnumPos < 0 {
-					dtval := pointers[i].(*NullTime)
-					if dtval.Valid {
-						strdt := Date2string((*dtval).Time, ISODateTimestamp)
-						(*dtval).Time = String2dateNoErr(strdt, UTCDateTimestamp)
-					}
-				} else if i >= rnumPos {
-					dtval := pointers[i+1].(*NullTime)
-					if dtval.Valid {
-						strdt := Date2string((*dtval).Time, ISODateTimestamp)
-						(*dtval).Time = String2dateNoErr(strdt, UTCDateTimestamp)
-					}
+				dtval := pointers[i].(*NullTime)
+				if dtval.Valid {
+					strdt := Date2string((*dtval).Time, ISODateTimestamp)
+					(*dtval).Time = String2dateNoErr(strdt, UTCDateTimestamp)
 				}
 			}
 		}
