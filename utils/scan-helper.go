@@ -60,11 +60,20 @@ func (s *SQLScan) Scan(u *DbUtils, rows *sql.Rows, dest interface{}) error {
 	for i, colName := range s.columnNames {
 		if u.dbType == Oracle && colName == "rnumignore" {
 			rnumPos = i
-			var pointersAux []interface{}
-			pointersAux = append(pointersAux, pointers[:i]...)
-			pointersAux = append(pointersAux, reflect.ValueOf(rnum).Addr().Interface())
-			pointersAux = append(pointersAux, pointers[i:]...)
+			pointersAux := make([]interface{}, nrCols+1)
+
+			for k := 0; k < i; k++ {
+				pointersAux[k] = pointers[k]
+			}
+
+			pointersAux[i] = &rnum
+
+			for k := i; k < nrCols; k++ {
+				pointersAux[k+1] = pointers[k]
+			}
+
 			pointers = pointersAux
+
 			continue
 		}
 
