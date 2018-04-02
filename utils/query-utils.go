@@ -413,7 +413,6 @@ func (pq *PreparedQuery) oracle11gLimitAndOffset() {
 				if n >= 2 {
 					offset := pq.Args[n-1].(int)
 					nrRows := pq.Args[n-2].(int)
-					pq.Args[n-1] = offset + 1
 					pq.Args[n-2] = offset + nrRows
 				}
 			}
