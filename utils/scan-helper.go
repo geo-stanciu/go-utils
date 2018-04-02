@@ -2,7 +2,6 @@ package utils
 
 import (
 	"database/sql"
-	"fmt"
 	"reflect"
 	"strings"
 	"sync"
@@ -56,13 +55,12 @@ func (s *SQLScan) Scan(u *DbUtils, rows *sql.Rows, dest interface{}) error {
 	nFields := structVal.NumField()
 
 	rnum := 0
+	rnumPos := -1
 
 	for i, colName := range s.columnNames {
 		if u.dbType == Oracle && colName == "rnumignore" {
-			fmt.Println(i)
-			fmt.Println(len(pointers[:i]))
-			fmt.Println(len(pointers[i+1:]))
-			pointers = append(pointers[:i], &rnum, pointers[i+1:])
+			rnumPos = i
+			pointers = append(pointers[:i], &rnum, pointers[i:])
 			continue
 		}
 
@@ -93,14 +91,28 @@ func (s *SQLScan) Scan(u *DbUtils, rows *sql.Rows, dest interface{}) error {
 
 		for i := 0; i < nrCols; i++ {
 			if fieldTypes[i] == dtType {
-				dtval := pointers[i].(*time.Time)
-				strdt := Date2string(*dtval, ISODateTimestamp)
-				*dtval = String2dateNoErr(strdt, UTCDateTimestamp)
+				if rnumPos < 0 {
+					dtval := pointers[i].(*time.Time)
+					strdt := Date2string(*dtval, ISODateTimestamp)
+					*dtval = String2dateNoErr(strdt, UTCDateTimestamp)
+				} else if i >= rnumPos {
+					dtval := pointers[i+1].(*time.Time)
+					strdt := Date2string(*dtval, ISODateTimestamp)
+					*dtval = String2dateNoErr(strdt, UTCDateTimestamp)
+				}
 			} else if fieldTypes[i] == dtnullType {
-				dtval := pointers[i].(*NullTime)
-				if dtval.Valid {
-					strdt := Date2string((*dtval).Time, ISODateTimestamp)
-					(*dtval).Time = String2dateNoErr(strdt, UTCDateTimestamp)
+				if rnumPos < 0 {
+					dtval := pointers[i].(*NullTime)
+					if dtval.Valid {
+						strdt := Date2string((*dtval).Time, ISODateTimestamp)
+						(*dtval).Time = String2dateNoErr(strdt, UTCDateTimestamp)
+					}
+				} else if i >= rnumPos {
+					dtval := pointers[i+1].(*NullTime)
+					if dtval.Valid {
+						strdt := Date2string((*dtval).Time, ISODateTimestamp)
+						(*dtval).Time = String2dateNoErr(strdt, UTCDateTimestamp)
+					}
 				}
 			}
 		}
