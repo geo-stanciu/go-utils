@@ -54,10 +54,11 @@ func (s *SQLScan) Scan(u *DbUtils, rows *sql.Rows, dest interface{}) error {
 	structVal := reflect.ValueOf(dest).Elem()
 	nFields := structVal.NumField()
 
+	rnum := 0
+
 	for i, colName := range s.columnNames {
 		if u.dbType == Oracle && colName == "rnumignore" {
-			rnum := 0
-			pointers = append(pointers, &rnum)
+			pointers = append(pointers[:i], &rnum, pointers[i+1:])
 			continue
 		}
 
