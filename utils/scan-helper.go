@@ -2,6 +2,7 @@ package utils
 
 import (
 	"database/sql"
+	"fmt"
 	"reflect"
 	"strings"
 	"sync"
@@ -88,6 +89,8 @@ func (s *SQLScan) Scan(u *DbUtils, rows *sql.Rows, dest interface{}) error {
 			}
 		}
 	}
+
+	fmt.Println("pointers", pointers)
 
 	err := rows.Scan(pointers...)
 	if err != nil {
