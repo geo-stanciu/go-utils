@@ -193,6 +193,8 @@ func ParseRSSDate(sdate string) (time.Time, error) {
 		RSSDateTime1,
 		RSSDateTime2,
 		RSSDateTime3,
+		ISODateTime,
+		ISODateTimeZ,
 	}
 
 	for _, format := range formats {
