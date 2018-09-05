@@ -39,8 +39,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Download
 
 ```bash
-go get "github.com/geo-stanciu/go-utils/utils"
-go get "github.com/sirupsen/logrus"
+go get github.com/geo-stanciu/go-utils/utils
+go get github.com/sirupsen/logrus
 ```
 
 ## Usage
