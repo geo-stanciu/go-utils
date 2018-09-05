@@ -26,7 +26,7 @@ For usage examples, look at: https://github.com/geo-stanciu/go-web-app
   - Limitations:
     - LIMIT ? OFFSET ? must be the last 2 parameters in the query
   - in Oracle
-  - changes params written as ? to :1, :2, etc
+    - changes params written as ? to :1, :2, etc
 - Provides an automatic sql column to struct field matcher
   - SQLScan helper class for reading sql to Struct
   Columns in struct must be marked with a `sql:"col_name"` tag
@@ -262,7 +262,7 @@ err = dbutl.ForEachRow(pq, func(row *sql.Rows, sc *utils.SQLScan) error {
         return err
     }
 
-    lres.Rates = append(lres.Rates, &r)
+    roles = append(roles, r)
     return nil
 })
 ```
