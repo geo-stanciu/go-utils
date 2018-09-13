@@ -13,7 +13,7 @@ For usage examples, look at: https://github.com/geo-stanciu/go-web-app
 ## Features
 
 - Prepared queries and parameters
-- Query parameter placeholders will be written as ? in all suported databses.
+- Query parameter placeholders will be written as ? in all suported databases.
 - Some alterations to the query will be made:
   - get dates as UTC
   - in Postgresql
@@ -28,8 +28,8 @@ For usage examples, look at: https://github.com/geo-stanciu/go-web-app
   - in Oracle
   - changes params written as ? to :1, :2, etc
 - Provides an automatic sql column to struct field matcher
-  - SQLScan helper class for reading sql to Struct
-  Columns in struct must be marked with a `sql:"col_name"` tag
+  - SQLScan helper class for reading sql to Struct.
+  Columns in struct must be marked with a `sql:"col_name"` tag.
   Ex: in sql a column name is col1, in struct the col tag must be `sql:"col1"`
 
 ## License
@@ -44,6 +44,36 @@ go get "github.com/sirupsen/logrus"
 ```
 
 ## Usage
+
+### Create audit_log table (PostgreSQL)
+
+```sql
+create table if not exists audit_log (
+    audit_log_id   bigserial primary key,
+    source         varchar(64) not null,
+    source_version varchar(16) not null,
+    log_time       timestamp not null,
+    log_msg        jsonb     not null
+);
+
+create index if not exists idx_time_audit_log ON audit_log (log_time);
+create index if not exists idx_log_source_audit_log ON audit_log (source);
+```
+
+### Create audit_log table (MySQL)
+
+```sql
+create table if not exists audit_log (
+    audit_log_id   bigint auto_increment PRIMARY KEY,
+    source         varchar(64) not null,
+    source_version varchar(16) not null,
+    log_time       datetime(3) not null,
+    log_msg        JSON not null
+);
+
+create index idx_time_audit_log on audit_log (log_time);
+CREATE INDEX idx_log_source_audit_log ON audit_log (source);
+```
 
 ### Declare as vars
 
