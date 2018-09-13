@@ -322,3 +322,22 @@ func (u *DbUtils) ForEachRowTx(tx *sql.Tx, pq *PreparedQuery, callback DBRowCall
 	return nil
 }
 */
+
+// SetAsyncCommit - sets commit without waiting to save the information on the disk for current session.
+// For the databases who don't have a way to set this, or the method is not yet configured here, this is a noop
+func (u *DbUtils) SetAsyncCommit(tx *sql.Tx) error {
+	var pq *PreparedQuery
+
+	switch u.dbType {
+	case Postgres:
+		pq = u.PQuery("SET synchronous_commit = 'off'")
+	case Oracle, Oracle11g, Oci8:
+		pq = u.PQuery("alter session set commit_logging=batch commit_wait=nowait")
+	default:
+		return nil
+	}
+
+	_, err := u.ExecTx(tx, pq)
+
+	return err
+}
