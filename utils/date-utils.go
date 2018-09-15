@@ -16,6 +16,10 @@ const (
 	ISODateTimeZ string = "2006-01-02 15:04:05Z07:00"
 	// ISODateTimestampZ - iso timestamp with timezone format
 	ISODateTimestampZ string = "2006-01-02 15:04:05.000Z07:00"
+	// ISOTime - iso time format
+	ISOTime string = "15:04:05"
+	// ISOTimeMS - iso time format with miliseconds
+	ISOTimeMS string = "15:04:05.000"
 	// DMY - dd/MM/yyyy
 	DMY string = "02/01/2006"
 	// DMYTime - dd/MM/yyyy HH:m:ss

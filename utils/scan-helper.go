@@ -30,6 +30,9 @@ func (s *SQLScan) Scan(u *DbUtils, rows *sql.Rows, dest interface{}) error {
 	s.Lock()
 	defer s.Unlock()
 
+	isOracle := u.dbType == Oci8 || u.dbType == Oracle || u.dbType == Oracle11g
+	isSqlite := u.dbType == Sqlite3
+
 	if s.columnNames == nil || len(s.columnNames) == 0 {
 		cols, err := rows.Columns()
 		if err != nil {
@@ -38,7 +41,7 @@ func (s *SQLScan) Scan(u *DbUtils, rows *sql.Rows, dest interface{}) error {
 
 		s.columnNames = cols
 
-		if u.dbType == Oci8 || u.dbType == Oracle || u.dbType == Oracle11g {
+		if isOracle {
 			for i, colName := range s.columnNames {
 				if colName[0:1] != "\"" {
 					s.columnNames[i] = strings.ToLower(colName)
@@ -49,6 +52,8 @@ func (s *SQLScan) Scan(u *DbUtils, rows *sql.Rows, dest interface{}) error {
 
 	nrCols := len(s.columnNames)
 	pointers := make([]interface{}, nrCols)
+	altpointers := make([]interface{}, nrCols)
+	putback := make([]int, 0)
 	fieldTypes := make([]reflect.Type, nrCols)
 
 	structVal := reflect.ValueOf(dest).Elem()
@@ -56,8 +61,13 @@ func (s *SQLScan) Scan(u *DbUtils, rows *sql.Rows, dest interface{}) error {
 
 	rnum := 0
 
+	dt := time.Now()
+	dtnull := NullTime{}
+	dtType := reflect.TypeOf(dt)
+	dtnullType := reflect.TypeOf(dtnull)
+
 	for i, colName := range s.columnNames {
-		if u.dbType == Oracle11g && colName == "rnumignore" {
+		if isOracle && colName == "rnumignore" {
 			pointers[i] = &rnum
 			fieldTypes[i] = reflect.ValueOf(rnum).Type()
 			continue
@@ -70,6 +80,13 @@ func (s *SQLScan) Scan(u *DbUtils, rows *sql.Rows, dest interface{}) error {
 			if tag.Get("sql") == colName {
 				pointers[i] = structVal.Field(j).Addr().Interface()
 				fieldTypes[i] = typeField.Type
+
+				if isSqlite && (fieldTypes[i] == dtType || fieldTypes[i] == dtnullType) {
+					altpointers[i] = pointers[i]
+					putback = append(putback, i)
+					pointers[i] = new(string)
+				}
+
 				break
 			}
 		}
@@ -80,13 +97,37 @@ func (s *SQLScan) Scan(u *DbUtils, rows *sql.Rows, dest interface{}) error {
 		return err
 	}
 
-	if u.dbType == Oci8 || u.dbType == Oracle || u.dbType == Oracle11g {
+	if isSqlite {
+		np := len(putback)
+		for k := 0; k < np; k++ {
+			i := putback[k]
+
+			if val, ok := pointers[i].(*string); ok && val != nil {
+				l := len(*val)
+
+				if l == 0 {
+					continue
+				}
+
+				dtval := altpointers[i].(*time.Time)
+
+				switch l {
+				case 8:
+					*dtval = String2dateNoErr(*val, ISOTime)
+				case 10:
+					*dtval = String2dateNoErr(*val, UTCDate)
+				case 12:
+					*dtval = String2dateNoErr(*val, ISOTimeMS)
+				case 19:
+					*dtval = String2dateNoErr(*val, UTCDateTime)
+				default:
+					*dtval = String2dateNoErr(*val, UTCDateTimestamp)
+				}
+			}
+		}
+	} else if isOracle {
 		// in oci, the timestamp is comming up as local time zone
 		// even if you ask for the UTC
-		dt := time.Now()
-		dtnull := NullTime{}
-		dtType := reflect.TypeOf(dt)
-		dtnullType := reflect.TypeOf(dtnull)
 
 		for i := 0; i < nrCols; i++ {
 			if fieldTypes[i] == dtType {
