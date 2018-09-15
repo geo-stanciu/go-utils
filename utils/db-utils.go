@@ -22,6 +22,8 @@ const (
 	MySQL string = "mysql"
 	// SQLServer - defines Microsoft SQL Server driver name
 	SQLServer string = "mssql"
+	// Sqlite3 - defines sqlite3 driver name
+	Sqlite3 string = "sqlite3"
 )
 
 // NullTime represents a time.Time that may be null. NullTime implements the
@@ -62,6 +64,7 @@ func (u *DbUtils) setDbType(dbType string) {
 		Oracle11g,
 		MySQL,
 		SQLServer,
+		Sqlite3,
 	}
 
 	if len(dbType) == 0 || !stringInSlice(dbType, dbtypes) {
@@ -73,11 +76,7 @@ func (u *DbUtils) setDbType(dbType string) {
 	switch u.dbType {
 	case Postgres:
 		u.prefix = "$"
-	case Oci8:
-		u.prefix = ":"
-	case Oracle:
-		u.prefix = ":"
-	case Oracle11g:
+	case Oci8, Oracle, Oracle11g:
 		u.prefix = ":"
 	default:
 		u.prefix = ""
@@ -130,6 +129,10 @@ func (u *DbUtils) Connect2Database(db **sql.DB, dbType, dbURL string) error {
 	err = (*db).Ping()
 	if err != nil {
 		return errors.New("Can't ping the database, go error " + fmt.Sprintf("%s", err))
+	}
+
+	if dbType == Sqlite3 {
+		(*db).SetMaxOpenConns(1)
 	}
 
 	u.db = *db

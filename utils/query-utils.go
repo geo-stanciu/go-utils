@@ -68,6 +68,9 @@ func (pq *PreparedQuery) Prepare() {
 
 	case pq.DbType == Oracle11g:
 		pq.modifyQuery4Oracle11g()
+
+	case pq.DbType == Sqlite3:
+		pq.modifyQuery4Sqlite()
 	}
 
 	pq.replaceParamPlaceHolders()
@@ -103,9 +106,6 @@ func (pq *PreparedQuery) modifyQuery4MySQL() {
 
 	pq.Query = q
 
-	// Geo
-	// MySQL does not support except or minus queries at this time
-	// left this here for MariaBD 10.3 who will support EXCEPT
 	pq.minus2except(true)
 	pq.minus2except(false)
 }
@@ -164,6 +164,21 @@ func (pq *PreparedQuery) modifyQuery4Oracle11g() {
 	pq.except2minus(true)
 	pq.except2minus(false)
 	pq.oracle11gLimitAndOffset()
+}
+
+func (pq *PreparedQuery) modifyQuery4Sqlite() {
+	q := pq.Query
+
+	q = strings.Replace(q, "now()", "strftime('%Y-%m-%d %H:%M:%f','now')", -1)
+	q = strings.Replace(q, "DATE ?", "date(?)", -1)
+	q = strings.Replace(q, "TIMESTAMP ?", "datetime(?)", -1)
+	q = strings.Replace(q, "date ?", "date(?)", -1)
+	q = strings.Replace(q, "timestamp ?", "datetime(?)", -1)
+
+	pq.Query = q
+
+	pq.minus2except(true)
+	pq.minus2except(false)
 }
 
 func (pq *PreparedQuery) replaceParamPlaceHolders() {
