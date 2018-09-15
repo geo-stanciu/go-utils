@@ -84,7 +84,7 @@ func (s *SQLScan) Scan(u *DbUtils, rows *sql.Rows, dest interface{}) error {
 				if isSqlite && (fieldTypes[i] == dtType || fieldTypes[i] == dtnullType) {
 					altpointers[i] = pointers[i]
 					putback = append(putback, i)
-					pointers[i] = new(string)
+					pointers[i] = new(sql.NullString)
 				}
 
 				break
@@ -102,26 +102,22 @@ func (s *SQLScan) Scan(u *DbUtils, rows *sql.Rows, dest interface{}) error {
 		for k := 0; k < np; k++ {
 			i := putback[k]
 
-			if val, ok := pointers[i].(*string); ok && val != nil {
-				l := len(*val)
+			if val, ok := pointers[i].(*sql.NullString); ok && val != nil && (*val).Valid {
+				s := (*val).String
+				s = strings.Replace(s, "T", " ", 1)
+				s = strings.Replace(s, "Z", "", 1)
+				l := len(s)
 
 				if l == 0 {
 					continue
 				}
 
-				dtval := altpointers[i].(*time.Time)
-
-				switch l {
-				case 8:
-					*dtval = String2dateNoErr(*val, ISOTime)
-				case 10:
-					*dtval = String2dateNoErr(*val, UTCDate)
-				case 12:
-					*dtval = String2dateNoErr(*val, ISOTimeMS)
-				case 19:
-					*dtval = String2dateNoErr(*val, UTCDateTime)
-				default:
-					*dtval = String2dateNoErr(*val, UTCDateTimestamp)
+				if fieldTypes[i] == dtnullType {
+					dtval := altpointers[i].(*NullTime)
+					(*dtval).SetValue(parseSDate(s, l))
+				} else {
+					dtval := altpointers[i].(*time.Time)
+					*dtval = parseSDate(s, l)
 				}
 			}
 		}
@@ -145,4 +141,24 @@ func (s *SQLScan) Scan(u *DbUtils, rows *sql.Rows, dest interface{}) error {
 	}
 
 	return nil
+}
+
+func parseSDate(s string, l int) time.Time {
+	var dt time.Time
+
+	switch {
+	case l == 8:
+		dt = String2dateNoErr(s, ISOTime)
+	case l == 10:
+		dt = String2dateNoErr(s, UTCDate)
+	case l == 12:
+		dt = String2dateNoErr(s, ISOTimeMS)
+	case l == 19:
+		dt = String2dateNoErr(s, UTCDateTime)
+	case l >= 23:
+		s = s[0:23]
+		dt = String2dateNoErr(s, UTCDateTimestamp)
+	}
+
+	return dt
 }
