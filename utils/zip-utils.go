@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"os"
 	"sync"
 )
 
@@ -32,6 +33,35 @@ func NewZipWriter(dest io.Writer) *ZipWriter {
 	z.w = zip.NewWriter(dest)
 
 	return &z
+}
+
+// AddFile - add file
+func (z *ZipWriter) AddFile(name string, sourcefile string) error {
+	f, err := os.Open(sourcefile)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	return z.AddFromReader(name, f)
+}
+
+// AddFromReader - add entry from io.reader
+func (z *ZipWriter) AddFromReader(name string, source io.Reader) error {
+	z.Lock()
+	defer z.Unlock()
+
+	f, err := z.w.Create(name)
+	if err != nil {
+		return err
+	}
+
+	_, err = io.Copy(f, source)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // AddEntry - add file
