@@ -87,6 +87,18 @@ func (u *DbUtils) PQuery(query string, args ...interface{}) *PreparedQuery {
 	return &pq
 }
 
+// PQueryNoRewrite - useable when the query was already prepared before
+func (u *DbUtils) PQueryNoRewrite(query string, args ...interface{}) *PreparedQuery {
+	pq := PreparedQuery{
+		DbType:      u.dbType,
+		ParamPrefix: u.prefix,
+		Query:       query,
+		Args:        args,
+	}
+
+	return &pq
+}
+
 // Connect2Database - connect to a database
 func (u *DbUtils) Connect2Database(db **sql.DB, dbType, dbURL string) error {
 	var err error

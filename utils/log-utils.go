@@ -17,6 +17,7 @@ type logItem struct {
 
 // AuditLog - Audit log helper
 type AuditLog struct {
+	mux           *sync.RWMutex
 	log           *logrus.Logger
 	source        string
 	sourceVersion string
@@ -24,6 +25,7 @@ type AuditLog struct {
 	queue         chan logItem
 	wg            *sync.WaitGroup
 	exitSignal    bool
+	query         string
 }
 
 // SetWaitGroup - SetWaitGroup
@@ -33,12 +35,26 @@ func (a *AuditLog) SetWaitGroup(wg *sync.WaitGroup) {
 
 // SetLogger - SetLogger
 func (a *AuditLog) SetLogger(source string, sourceVersion string, log *logrus.Logger, dbutl *DbUtils) {
+	a.mux = new(sync.RWMutex)
 	a.log = log
 	a.source = source
 	a.sourceVersion = sourceVersion
 	a.dbutl = dbutl
-	a.queue = make(chan logItem, 1024)
+	a.queue = make(chan logItem, 10*1024)
 
+	pq := a.dbutl.PQuery(`
+		INSERT INTO audit_log (
+			log_time,
+			source,
+			source_version,
+			log_msg
+		)
+		VALUES (?, ?, ?, ?)
+	`)
+
+	a.query = pq.Query
+
+	go a.processQueue()
 	go a.processQueue()
 	go a.processQueue()
 	go a.processQueue()
@@ -47,6 +63,9 @@ func (a *AuditLog) SetLogger(source string, sourceVersion string, log *logrus.Lo
 
 // Close - send signal to close operations
 func (a *AuditLog) Close() {
+	a.mux.Lock()
+	defer a.mux.Unlock()
+
 	if a.exitSignal {
 		return
 	}
@@ -63,6 +82,7 @@ func (a *AuditLog) Close() {
 	a.queue <- li
 	a.queue <- li
 	a.queue <- li
+	a.queue <- li
 }
 
 func (a *AuditLog) processQueue() {
@@ -73,15 +93,9 @@ func (a *AuditLog) processQueue() {
 			break
 		}
 
-		pq := a.dbutl.PQuery(`
-			INSERT INTO audit_log (
-				log_time,
-				source,
-				source_version,
-				log_msg
-			)
-			VALUES (?, ?, ?, ?)
-		`, li.dt,
+		pq := a.dbutl.PQueryNoRewrite(
+			a.query,
+			li.dt,
 			a.source,
 			a.sourceVersion,
 			li.msg)
@@ -119,7 +133,7 @@ func (a AuditLog) Write(p []byte) (n int, err error) {
 }
 
 // Log - Log Helper function
-func (a AuditLog) Log(err error, msgType string, msg string, details ...interface{}) {
+func (a *AuditLog) Log(err error, msgType string, msg string, details ...interface{}) {
 	fields := make(map[string]interface{})
 
 	if len(msgType) > 0 {
