@@ -10,9 +10,8 @@ import (
 )
 
 type logItem struct {
-	exitSignal bool
-	dt         time.Time
-	msg        string
+	dt  time.Time
+	msg string
 }
 
 // AuditLog - Audit log helper
@@ -24,7 +23,6 @@ type AuditLog struct {
 	dbutl         *DbUtils
 	queue         chan logItem
 	wg            *sync.WaitGroup
-	exitSignal    bool
 	query         string
 }
 
@@ -65,31 +63,13 @@ func (a *AuditLog) SetLogger(source string, sourceVersion string, log *logrus.Lo
 func (a *AuditLog) Close() {
 	a.mux.Lock()
 	defer a.mux.Unlock()
-
-	if a.exitSignal {
-		return
-	}
-
-	a.exitSignal = true
-
-	li := logItem{
-		exitSignal: true,
-		dt:         time.Now().UTC(),
-		msg:        "exit",
-	}
-
-	a.queue <- li
-	a.queue <- li
-	a.queue <- li
-	a.queue <- li
-	a.queue <- li
+	close(a.queue)
 }
 
 func (a *AuditLog) processQueue() {
 	for {
-		li := <-a.queue
-
-		if li.exitSignal {
+		li, ok := <-a.queue
+		if !ok {
 			break
 		}
 
@@ -114,10 +94,6 @@ func (a *AuditLog) processQueue() {
 }
 
 func (a AuditLog) Write(p []byte) (n int, err error) {
-	if a.exitSignal {
-		return 0, fmt.Errorf("exit signal already received")
-	}
-
 	if a.wg != nil {
 		a.wg.Add(1)
 	}
