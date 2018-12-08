@@ -2,6 +2,7 @@ package utils
 
 import (
 	"database/sql"
+	"fmt"
 	"reflect"
 	"strings"
 	"sync"
@@ -14,6 +15,7 @@ import (
 type SQLScan struct {
 	sync.RWMutex
 	columnNames []string
+	dateformats []string
 }
 
 // Clear - clears the columns array.
@@ -23,6 +25,7 @@ func (s *SQLScan) Clear() {
 	defer s.Unlock()
 
 	s.columnNames = nil
+	s.dateformats = nil
 }
 
 // Scan - reads sql statement into a struct
@@ -47,6 +50,24 @@ func (s *SQLScan) Scan(u *DbUtils, rows *sql.Rows, dest interface{}) error {
 					s.columnNames[i] = strings.ToLower(colName)
 				}
 			}
+		}
+	}
+
+	if isSqlite && (s.dateformats == nil || len(s.dateformats) == 0) {
+		s.dateformats = []string{
+			"2006-01-02 15:04:05.000000Z07:00",
+			"2006-01-02 15:04:05.000Z07:00",
+			"2006-01-02 15:04:05.000",
+			"2006-01-02 15:04:05Z07:00",
+			"2006-01-02 15:04:05",
+			"2006-01-02 15:04",
+			"2006-01-02",
+			"15:04:05.000000Z07:00",
+			"15:04:05.000Z07:00",
+			"15:04:05.000",
+			"15:04:05Z07:00",
+			"15:04:05",
+			"15:04",
 		}
 	}
 
@@ -103,21 +124,27 @@ func (s *SQLScan) Scan(u *DbUtils, rows *sql.Rows, dest interface{}) error {
 			i := putback[k]
 
 			if val, ok := pointers[i].(*sql.NullString); ok && val != nil && (*val).Valid {
-				s := (*val).String
-				s = strings.Replace(s, "T", " ", 1)
-				s = strings.Replace(s, "Z", "", 1)
-				l := len(s)
+				sdt := (*val).String
+
+				sdt = strings.Replace(sdt, "T", " ", 1)
+				sdt = strings.Replace(sdt, "Z", "", 1)
+				l := len(sdt)
 
 				if l == 0 {
 					continue
 				}
 
+				val, err := s.parseSDate(sdt)
+				if err != nil {
+					return err
+				}
+
 				if fieldTypes[i] == dtnullType {
 					dtval := altpointers[i].(*NullTime)
-					(*dtval).SetValue(parseSDate(s, l))
+					(*dtval).SetValue(val)
 				} else {
 					dtval := altpointers[i].(*time.Time)
-					*dtval = parseSDate(s, l)
+					*dtval = val
 				}
 			}
 		}
@@ -143,22 +170,34 @@ func (s *SQLScan) Scan(u *DbUtils, rows *sql.Rows, dest interface{}) error {
 	return nil
 }
 
-func parseSDate(s string, l int) time.Time {
+func (s *SQLScan) parseSDate(sdt string) (time.Time, error) {
 	var dt time.Time
+	var err error
+	var err1 error
+	found := false
 
-	switch {
-	case l == 8:
-		dt = String2dateNoErr(s, ISOTime)
-	case l == 10:
-		dt = String2dateNoErr(s, UTCDate)
-	case l == 12:
-		dt = String2dateNoErr(s, ISOTimeMS)
-	case l == 19:
-		dt = String2dateNoErr(s, UTCDateTime)
-	case l >= 23:
-		s = s[0:23]
-		dt = String2dateNoErr(s, UTCDateTimestamp)
+	for _, format := range s.dateformats {
+		dt, err1 = String2date(sdt, format)
+
+		if err1 == nil {
+			found = true
+			break
+		}
+
+		if err == nil {
+			err = err1
+		}
+
+		continue
 	}
 
-	return dt
+	if !found {
+		if err == nil {
+			err = fmt.Errorf("Unknown date format: \"%s\"", sdt)
+		}
+
+		return dt, err
+	}
+
+	return dt, nil
 }
