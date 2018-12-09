@@ -1,9 +1,12 @@
 # Goals
 
-Provides easier acces to databases and logging to database.
-Tries to implement as much database abstraction as posible.
-Allows you to use ? as parameter placeholder in all supported databases.
-If you need to write the character ? in a query (such as testing if a key exists in a postgresql jsonb column) you must write it as ?? .
+- Provides easier acces to relational databases.
+- Tries to implement as much database abstraction as posible.
+- Query to struct auto column mapper using a "sql" tag.
+- Allows you to use ? as parameter placeholder in all supported databases.
+- If you need to write the character ? in a query (such as testing if a key exists in a postgresql jsonb column) you must write it as ?? .
+- Optional easy logging into the database (in JSON format using the excelent github.com/sirupsen/logrus)
+- Easier to work with zip files (either from the hard drive or in memory).
 
 Supports:
 - **oracle 11g** and **oracle 12.1** with github.com/mattn/go-oci8
