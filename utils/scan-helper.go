@@ -53,22 +53,6 @@ func (s *SQLScan) Scan(u *DbUtils, rows *sql.Rows, dest interface{}) error {
 		}
 	}
 
-	if isSqlite && (s.dateformats == nil || len(s.dateformats) == 0) {
-		s.dateformats = []string{
-			"2006-01-02 15:04:05.000000000Z07:00",
-			"2006-01-02 15:04:05.000000000",
-			"2006-01-02 15:04:05Z07:00",
-			"2006-01-02 15:04:05",
-			"2006-01-02 15:04",
-			"2006-01-02",
-			"15:04:05.000000000Z07:00",
-			"15:04:05.000000000",
-			"15:04:05Z07:00",
-			"15:04:05",
-			"15:04",
-		}
-	}
-
 	nrCols := len(s.columnNames)
 	pointers := make([]interface{}, nrCols)
 	altpointers := make([]interface{}, nrCols)
@@ -177,6 +161,22 @@ func (s *SQLScan) parseSDate(sdt string) (time.Time, error) {
 	var err error
 	var err1 error
 	found := false
+
+	if s.dateformats == nil || len(s.dateformats) == 0 {
+		s.dateformats = []string{
+			"2006-01-02 15:04:05.000000000Z07:00",
+			"2006-01-02 15:04:05.000000000",
+			"2006-01-02 15:04:05Z07:00",
+			"2006-01-02 15:04:05",
+			"2006-01-02 15:04",
+			"2006-01-02",
+			"15:04:05.000000000Z07:00",
+			"15:04:05.000000000",
+			"15:04:05Z07:00",
+			"15:04:05",
+			"15:04",
+		}
+	}
 
 	// transform in <date time.nano seconds>  format
 	sdate := sdt
