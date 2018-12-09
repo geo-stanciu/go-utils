@@ -2,13 +2,23 @@
 
 Provides easier acces to databases and logging to database.
 Tries to implement as much database abstraction as posible.
-Allows you to use ? as parameter placeholder in: oracle 12.1, sql server 2017, postgresql, mariadb and mysql.
+Allows you to use ? as parameter placeholder in all supported databases.
+If you need to write the character ? in a query (such as testing if a key exists in a postgresql jsonb column) you must write it as ?? .
 
-If you need to write the character ? in a query (such as testing if a key exists in a postgresql jsonb column) you must write it as ??
+Supports:
+- **oracle 11g** and **oracle 12.1** with github.com/mattn/go-oci8
+- **sql server** with github.com/denisenkom/go-mssqldb
+- **postgresql** with github.com/lib/pq
+- **mariadb** and **mysql** with github.com/go-sql-driver/mysql
+- **sqlite3** with github.com/mattn/go-sqlite3
+
+## Author Recommendation
+
+- Save all dates as UTC in all supported databases and switch back to local as needed.
 
 ## Examples
 
-For usage examples, look at: https://github.com/geo-stanciu/go-web-app
+For usage examples, look at: https://github.com/geo-stanciu/go-tryouts and https://github.com/geo-stanciu/go-web-app
 
 ## Features
 
