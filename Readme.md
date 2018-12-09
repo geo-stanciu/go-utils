@@ -12,9 +12,10 @@ Supports:
 - **mariadb** and **mysql** with github.com/go-sql-driver/mysql
 - **sqlite3** with github.com/mattn/go-sqlite3
 
-## Author Recommendation
+## Author Recommendations
 
 - Save all dates as UTC in all supported databases and switch back to local as needed.
+- Use the provided utils.SQLScan to map the row directly into a struct (examples bellow) especially in Oracle, MySQL and SQlite. Saves a ton of headaches in working with dates and times.
 
 ## Examples
 
