@@ -55,16 +55,14 @@ func (s *SQLScan) Scan(u *DbUtils, rows *sql.Rows, dest interface{}) error {
 
 	if isSqlite && (s.dateformats == nil || len(s.dateformats) == 0) {
 		s.dateformats = []string{
-			"2006-01-02 15:04:05.000000Z07:00",
-			"2006-01-02 15:04:05.000Z07:00",
-			"2006-01-02 15:04:05.000",
+			"2006-01-02 15:04:05.000000000Z07:00",
+			"2006-01-02 15:04:05.000000000",
 			"2006-01-02 15:04:05Z07:00",
 			"2006-01-02 15:04:05",
 			"2006-01-02 15:04",
 			"2006-01-02",
-			"15:04:05.000000Z07:00",
-			"15:04:05.000Z07:00",
-			"15:04:05.000",
+			"15:04:05.000000000Z07:00",
+			"15:04:05.000000000",
 			"15:04:05Z07:00",
 			"15:04:05",
 			"15:04",
@@ -170,14 +168,38 @@ func (s *SQLScan) Scan(u *DbUtils, rows *sql.Rows, dest interface{}) error {
 	return nil
 }
 
+func padRight(str string, item string, count int) string {
+	return str + strings.Repeat(item, count-len(str))
+}
+
 func (s *SQLScan) parseSDate(sdt string) (time.Time, error) {
 	var dt time.Time
 	var err error
 	var err1 error
 	found := false
 
+	// transform in <date time.nano seconds>  format
+	sdate := sdt
+	idx := strings.Index(sdt, ".")
+
+	if idx > 0 {
+		idx2 := strings.Index(sdt[idx:], "+")
+
+		if idx2 > 0 {
+			sdate = fmt.Sprintf("%v%v%v", sdt[0:idx+1], padRight(sdt[idx+1:idx+idx2], "0", 9), sdt[idx+idx2:])
+		} else {
+			idx2 = strings.Index(sdt[idx:], "-")
+
+			if idx2 > 0 {
+				sdate = fmt.Sprintf("%v%v%v", sdt[0:idx+1], padRight(sdt[idx+1:idx+idx2], "0", 9), sdt[idx+idx2:])
+			} else {
+				sdate = fmt.Sprintf("%v%v", sdt[0:idx+1], padRight(sdt[idx+1:], "0", 9))
+			}
+		}
+	}
+
 	for _, format := range s.dateformats {
-		dt, err1 = String2date(sdt, format)
+		dt, err1 = String2date(sdate, format)
 
 		if err1 == nil {
 			found = true
