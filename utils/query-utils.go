@@ -170,6 +170,7 @@ func (pq *PreparedQuery) modifyQuery4Sqlite() {
 	q := pq.Query
 
 	q = strings.Replace(q, "now()", "strftime('%Y-%m-%d %H:%M:%f','now')", -1)
+	q = strings.Replace(q, "current_timestamp", "strftime('%Y-%m-%d %H:%M:%f','now')", -1)
 	q = strings.Replace(q, "DATE ?", "date(?)", -1)
 	q = strings.Replace(q, "TIMESTAMP ?", "datetime(?)", -1)
 	q = strings.Replace(q, "date ?", "date(?)", -1)

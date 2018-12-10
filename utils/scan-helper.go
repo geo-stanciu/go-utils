@@ -197,9 +197,14 @@ func (s *SQLScan) parseSDate(sdt string) (time.Time, error) {
 			}
 		}
 	}
+	
+	loc, err := time.LoadLocation("UTC")
+	if err != nil {
+		return time.Now(), err
+	}
 
 	for _, format := range s.dateformats {
-		dt, err1 = String2date(sdate, format)
+		dt, err1 = time.ParseInLocation(format, sdate, loc)
 
 		if err1 == nil {
 			found = true
