@@ -118,7 +118,7 @@ func (u *DbUtils) Connect2Database(db **sql.DB, dbType, dbURL string) error {
 	if err != nil {
 		return errors.New("Can't ping the database, go error " + fmt.Sprintf("%s", err))
 	}
-
+	
 	if dbType == Sqlite3 {
 		(*db).SetMaxOpenConns(1)
 	}

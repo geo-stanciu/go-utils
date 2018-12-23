@@ -197,6 +197,8 @@ func ParseRSSDate(sdate string) (time.Time, error) {
 		RSSDateTime1,
 		RSSDateTime2,
 		RSSDateTime3,
+		"02 Jan 2006 15:04:05 Z0700",
+		"_2 Jan 2006 15:04:05 Z0700",
 		ISODateTime,
 		ISODateTimeZ,
 	}

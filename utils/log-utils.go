@@ -181,3 +181,13 @@ func (a *AuditLog) Log(err error, msgType string, msg string, details ...interfa
 		}
 	}
 }
+
+func (a *AuditLog) Trace(s string) (string, time.Time) {
+    a.Log(nil, "trace", "start", "event", s)
+    return s, time.Now()
+}
+
+func (a *AuditLog) Un(s string, startTime time.Time) {
+    endTime := time.Now()
+    a.Log(nil, "trace", "end", "event", s, "elapsed_ms", endTime.Sub(startTime)/1E6)
+}
