@@ -2,6 +2,7 @@ package utils
 
 import (
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -203,8 +204,10 @@ func ParseRSSDate(sdate string) (time.Time, error) {
 		ISODateTimeZ,
 	}
 
+	sdt := strings.TrimSpace(sdate)
+
 	for _, format := range formats {
-		dt, err = String2date(sdate, format)
+		dt, err = String2date(sdt, format)
 		if err == nil {
 			break
 		}
