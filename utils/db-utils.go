@@ -136,7 +136,7 @@ func (u *DbUtils) Connect2Database(db **sql.DB, dbType, dbURL string) error {
 }
 
 // BeginTransaction - begins a transaction
-// used especially for sqlite3 to ensure secvential writing
+// used especially for sqlite3 to ensure sequential writing
 func (u *DbUtils) BeginTransaction() (*sql.Tx, error) {
 	if u.isSqlite3 {
 		u.mux.Lock()
