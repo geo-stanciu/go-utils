@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 )
 
 const (
@@ -27,12 +28,18 @@ const (
 // DbUtils can be used to prepare queries by changing the sql param notations
 // as defined by each supported database
 type DbUtils struct {
-	db     *sql.DB
-	dbType string
-	prefix string
+	mux       *sync.RWMutex
+	db        *sql.DB
+	tx        *sql.Tx
+	isSqlite3 bool
+	txActive  bool
+	dbType    string
+	prefix    string
 }
 
 func (u *DbUtils) setDbType(dbType string) {
+	u.mux = new(sync.RWMutex)
+
 	dbtypes := []string{
 		Postgres,
 		Oci8,
@@ -118,14 +125,60 @@ func (u *DbUtils) Connect2Database(db **sql.DB, dbType, dbURL string) error {
 	if err != nil {
 		return errors.New("Can't ping the database, go error " + fmt.Sprintf("%s", err))
 	}
-	
+
 	if dbType == Sqlite3 {
-		(*db).SetMaxOpenConns(1)
+		u.isSqlite3 = true
 	}
 
 	u.db = *db
 
 	return nil
+}
+
+// BeginTransaction - begins a transaction
+// used especially for sqlite3 to ensure secvential writing
+func (u *DbUtils) BeginTransaction() (*sql.Tx, error) {
+	if u.isSqlite3 {
+		u.mux.Lock()
+	}
+
+	tx, err := u.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	if u.isSqlite3 {
+		u.tx = tx
+		u.txActive = true
+	}
+
+	return tx, err
+}
+
+// Commit - commits the transaction
+func (u *DbUtils) Commit(tx *sql.Tx) {
+	if u.isSqlite3 {
+		if u.txActive {
+			defer u.mux.Unlock()
+			u.tx.Commit()
+			u.txActive = false
+		}
+	} else if tx != nil {
+		tx.Commit()
+	}
+}
+
+// Rollback - rollsback the transaction
+func (u *DbUtils) Rollback(tx *sql.Tx) {
+	if u.isSqlite3 {
+		if u.txActive {
+			defer u.mux.Unlock()
+			u.tx.Rollback()
+			u.txActive = false
+		}
+	} else if tx != nil {
+		tx.Rollback()
+	}
 }
 
 // Exec - exec query without result

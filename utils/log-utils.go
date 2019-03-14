@@ -73,6 +73,14 @@ func (a *AuditLog) processQueue() {
 			break
 		}
 
+		tx, err := a.dbutl.BeginTransaction()
+		if err != nil {
+			fmt.Println("log error: ", err)
+			a.dbutl.Rollback(tx)
+			continue
+		}
+		defer a.dbutl.Rollback(tx)
+
 		pq := a.dbutl.PQueryNoRewrite(
 			a.query,
 			li.dt,
@@ -80,10 +88,11 @@ func (a *AuditLog) processQueue() {
 			a.sourceVersion,
 			li.msg)
 
-		_, err := a.dbutl.Exec(pq)
+		_, err = a.dbutl.ExecTx(tx, pq)
 		if err != nil {
 			fmt.Println("log error: ", err)
 		}
+		a.dbutl.Commit(tx)
 
 		if a.wg != nil {
 			a.wg.Done()
@@ -183,11 +192,11 @@ func (a *AuditLog) Log(err error, msgType string, msg string, details ...interfa
 }
 
 func (a *AuditLog) Trace(s string) (string, time.Time) {
-    a.Log(nil, "trace", "start", "event", s)
-    return s, time.Now()
+	a.Log(nil, "trace", "start", "event", s)
+	return s, time.Now()
 }
 
 func (a *AuditLog) Un(s string, startTime time.Time) {
-    endTime := time.Now()
-    a.Log(nil, "trace", "end", "event", s, "elapsed_ms", endTime.Sub(startTime)/1E6)
+	endTime := time.Now()
+	a.Log(nil, "trace", "end", "event", s, "elapsed_ms", endTime.Sub(startTime)/1E6)
 }
