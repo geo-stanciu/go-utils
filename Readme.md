@@ -18,7 +18,8 @@ Supports:
 ## Author Recommendations
 
 - Save all dates as UTC in all supported databases and switch back to local as needed.
-- Use the provided utils.SQLScan to map the row directly into a struct (examples bellow) especially in Oracle, MySQL and SQlite. Saves a ton of headaches in working with dates and times.
+- Use the provided utils.SQLScan to map the row directly into a struct (examples bellow) especially in Oracle, MySQL and SQLite. Saves a ton of headaches in working with dates and times.
+- In SQLite use dbutl.BeginTransaction() for each DML (or of course a group of related DML's) as it will ensure only one operation is done at any given time (there are issues when trying to write in paralel). For portability it can be used in all supported databases but it will not call the mutex lock.
 
 ## Examples
 
@@ -253,7 +254,7 @@ type MembershipRole struct {
 
 var roles []MembershipRole
 var err error
-err = dbutl.ForEachRow(pq, func(row *sql.Rows, sc *utils.SQLScan) {
+err = dbutl.ForEachRow(pq, func(row *sql.Rows, sc *utils.SQLScan) error {
     var r MembershipRole
     err = row.Scan(&r.RoleID, &r.Rolename)
     if err != nil {
