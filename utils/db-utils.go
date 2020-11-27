@@ -128,11 +128,17 @@ func (u *DbUtils) Connect2Database(db **sql.DB, dbType, dbURL string) error {
 
 	if dbType == Sqlite3 {
 		u.isSqlite3 = true
+		u.RunSqlitePragmas()
 	}
 
 	u.db = *db
 
 	return nil
+}
+
+func (u *DbUtils) RunSqlitePragmas() {
+	pq := u.PQuery("pragma busy_timeout=30000")
+	_, err := u.Exec(pq)
 }
 
 // BeginTransaction - begins a transaction
