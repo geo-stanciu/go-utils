@@ -126,6 +126,8 @@ func (u *DbUtils) Connect2Database(db **sql.DB, dbType, dbURL string) error {
 		return errors.New("Can't ping the database, go error " + fmt.Sprintf("%s", err))
 	}
 
+	u.db = *db
+
 	if dbType == Sqlite3 {
 		u.isSqlite3 = true
 		err = u.RunSqlitePragmas()
@@ -134,8 +136,6 @@ func (u *DbUtils) Connect2Database(db **sql.DB, dbType, dbURL string) error {
 	if err != nil {
 		return errors.New("Database error " + fmt.Sprintf("%s", err))
 	}
-
-	u.db = *db
 
 	return nil
 }
