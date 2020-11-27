@@ -128,7 +128,11 @@ func (u *DbUtils) Connect2Database(db **sql.DB, dbType, dbURL string) error {
 
 	if dbType == Sqlite3 {
 		u.isSqlite3 = true
-		u.RunSqlitePragmas()
+		err = u.RunSqlitePragmas()
+	}
+
+	if err != nil {
+		return errors.New("Database error " + fmt.Sprintf("%s", err))
 	}
 
 	u.db = *db
@@ -136,9 +140,11 @@ func (u *DbUtils) Connect2Database(db **sql.DB, dbType, dbURL string) error {
 	return nil
 }
 
-func (u *DbUtils) RunSqlitePragmas() {
+func (u *DbUtils) RunSqlitePragmas() error {
 	pq := u.PQuery("pragma busy_timeout=30000")
 	_, err := u.Exec(pq)
+
+	return err
 }
 
 // BeginTransaction - begins a transaction
